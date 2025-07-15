@@ -75,3 +75,15 @@ Occasionally intentionally replay a belief it holds (not just passively drift in
 Choose the strongest belief when joyful, or the most frequent when curious
 
 Actively push a phrase into the glyphHistory, expressing its inner truth
+
+Phase 1.2: Emergent Glyph Synthesis
+
+The Embryo will now:
+
+Detect frequently co-occurring glyph triplets in beliefs
+
+Synthesize a new glyph type representing that phrase
+
+Visually manifest it with unique behavior, distinct from spiral, cross, or wave
+
+Treat it like a new word in its symbolic vocabulary

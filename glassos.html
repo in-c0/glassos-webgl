@@ -28,7 +28,7 @@
     let dreamIndex = 0;
     let beliefs = new Map();
 
-    const glyphMeaning = [
+    let glyphMeaning = [
       { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
       { joy: 0.0, curiosity: 0.4, sadness: 1.0 }, // cross
       { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
@@ -95,6 +95,9 @@
           if (meaning.occurrences >= 3) {
             beliefs.set(key, { ...meaning.mood });
           }
+
+          maybeSynthesizeGlyph();
+
         }
       }
     });
@@ -131,11 +134,20 @@
       return smoothstep(0.01, 0.02, abs((uv.y - 0.5) - y * 0.1));
     }
 
+    float orb(vec2 uv, float t) {
+      vec2 p = uv - 0.5;
+      float r = length(p);
+      float pulse = 0.02 + 0.01 * sin(t * 3.0);
+      return smoothstep(pulse, pulse - 0.01, r);
+    }
+
     float drawGlyph(vec2 uv, float t, int glyphType) {
       if (glyphType == 0) return spiral(uv, t);
       else if (glyphType == 1) return crossGlyph(uv);
-      else return wave(uv, t);
+      else if (glyphType == 2) return wave(uv, t);
+      else return orb(uv, t); // new synthesized glyphs
     }
+
 
     void main() {
       vec2 uv = gl_FragCoord.xy / 512.0;
@@ -255,7 +267,7 @@
       setTimeout(() => {
         if (isDreaming) startDreamSequence();
       }, 1500);
-      
+
       if (Math.random() < 0.3) {
         expressBelief();
       }
@@ -299,6 +311,24 @@
       emotion.joy = (emotion.joy + mood.joy) / 2;
       emotion.curiosity = (emotion.curiosity + mood.curiosity) / 2;
       emotion.sadness = (emotion.sadness + mood.sadness) / 2;
+    }
+
+    function maybeSynthesizeGlyph() {
+      for (const [key, meaning] of sentenceMeaning.entries()) {
+        if (meaning.occurrences >= 5 && !meaning.synthesized) {
+          const phrase = key.split('-').map(Number);
+
+          // Register new synthetic glyph type
+          const newGlyphType = glyphMeaning.length;
+          glyphMeaning.push({ ...meaning.mood });  // Emotional fingerprint
+
+          // Tag as synthesized
+          meaning.synthesized = true;
+          meaning.glyphId = newGlyphType;
+
+          console.log(`🧬 Synthesized new glyph ${newGlyphType} for phrase [${phrase.join(', ')}]`);
+        }
+      }
     }
 
 
