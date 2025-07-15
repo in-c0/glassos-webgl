@@ -19,6 +19,11 @@
     canvas.height = 512;
 
     let emotion = { joy: 0.5, curiosity: 0.5, sadness: 0.0 };
+    let innerDesire = {
+      target: { joy: 0.9, curiosity: 0.8, sadness: 0.1 },
+      longing: 0.5  // how strongly it wants to reach the goal
+    };
+
     let memory = [];
     let lastInteractionTime = Date.now();
     let isDreaming = false;
@@ -285,11 +290,19 @@
       let mood = {};
 
       if (beliefs.size > 0 && Math.random() < 0.6) {
-        // Speak belief
         const [key, value] = Array.from(beliefs.entries())[Math.floor(Math.random() * beliefs.size)];
-        const words = key.split('-').map(i => glyphMetadata[parseInt(i)].name).join(' → ');
-        phrase = `I believe ${words} feels like joy: ${value.joy.toFixed(2)}, sadness: ${value.sadness.toFixed(2)}, curiosity: ${value.curiosity.toFixed(2)}.`;
-      } else if (glyphSentences.length > 0) {
+        const words = key.split('-').map(i => glyphMetadata[parseInt(i)]?.name || '???').join(' → ');
+        const closeness = evaluateBeliefProximity(value);
+
+        if (closeness > 0.75) {
+          phrase = `This feels close to what I long for: ${words}.`;
+        } else if (closeness > 0.5) {
+          phrase = `Perhaps ${words} will help me understand what I seek.`;
+        } else {
+          phrase = `I don't think ${words} is what I'm looking for.`;
+        }
+      }
+       else if (glyphSentences.length > 0) {
         // Speak dream
         const random = glyphSentences[Math.floor(Math.random() * glyphSentences.length)];
         const words = random.map(i => glyphMetadata[i]?.name || 'unknown').join(' → ');
@@ -323,6 +336,13 @@
         utter.rate = 0.9 + emotion.curiosity * 0.4;
         window.speechSynthesis.speak(utter);
       }
+    }
+
+    function evaluateBeliefProximity(mood) {
+      const dJoy = Math.abs(innerDesire.target.joy - mood.joy);
+      const dSad = Math.abs(innerDesire.target.sadness - mood.sadness);
+      const dCurious = Math.abs(innerDesire.target.curiosity - mood.curiosity);
+      return 1.0 - (dJoy + dSad + dCurious) / 3;
     }
 
 
@@ -424,7 +444,10 @@
         glyphs: [${glyphHistory.join(', ')}]<br>
         phrase: [${recent.join(' → ')}] ${semantic}<br><br>
         <b>Beliefs</b><br>${beliefLines}<br><br>
-        <b>Glyph Legend</b><br>${legend}`;
+        <b>Glyph Legend</b><br>${legend}
+        <br><b>Desire</b><br>
+        Target: [${innerDesire.target.joy.toFixed(2)}, ${innerDesire.target.curiosity.toFixed(2)}, ${innerDesire.target.sadness.toFixed(2)}]<br>
+        Longing: ${innerDesire.longing.toFixed(2)}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

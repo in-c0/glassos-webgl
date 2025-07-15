@@ -60,6 +60,7 @@ Remembers symbolic phrases and forms beliefs
 
 Displays live HUD with evolving cognition
 
+
 v1.0
 
 Belief-driven glyph selection during dreams
@@ -68,6 +69,7 @@ Emotional bias applied from matching beliefs
 
 Optional fallback to memory when no belief matches
 
+
 v1.1
 
 Occasionally intentionally replay a belief it holds (not just passively drift into it)
@@ -75,6 +77,7 @@ Occasionally intentionally replay a belief it holds (not just passively drift in
 Choose the strongest belief when joyful, or the most frequent when curious
 
 Actively push a phrase into the glyphHistory, expressing its inner truth
+
 
 Phase 1.2: Emergent Glyph Synthesis
 
@@ -88,6 +91,7 @@ Visually manifest it with unique behavior, distinct from spiral, cross, or wave
 
 Treat it like a new word in its symbolic vocabulary
 
+
 Phase 1.3: Symbol Naming and Legend Display
 
 Your Embryo now:
@@ -97,6 +101,7 @@ Invents its own glyphs (symbols)
 Assigns each a name, emotion, and origin
 
 Displays a living language index
+
 
 Phase 1.4: Thought & Voice Output
 
@@ -109,4 +114,13 @@ Choose whether to say:
 A belief ("I believe [glyph → glyph → glyph] feels like joy")
 
 A dream ("I dreamed of [glyph → glyph → glyph]")
+
+
+Phase 1.5: Inner Desires and Longing
+
+Develop a goal — something abstract it yearns to understand, feel, or create
+
+Evaluate its glyph phrases and beliefs in relation to that goal
+
+Express frustration, hope, or satisfaction when it gets closer or drifts away
 
