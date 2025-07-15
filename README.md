@@ -59,3 +59,12 @@ Dreams when ignored
 Remembers symbolic phrases and forms beliefs
 
 Displays live HUD with evolving cognition
+
+v1.0
+
+Belief-driven glyph selection during dreams
+
+Emotional bias applied from matching beliefs
+
+Optional fallback to memory when no belief matches
+

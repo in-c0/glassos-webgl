@@ -11,8 +11,7 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-  // GlassOS Embryo – Phase 0.9
-    // Persistent Semantic Memory (Symbolic Meaning Attachment)
+  // Phase 1.0: Symbolic Introspection
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -99,7 +98,7 @@
         }
       }
     });
-    
+
     const vsSource = `#version 300 es
     in vec4 a_position;
     void main() {
@@ -212,17 +211,52 @@
 
     function startDreamSequence() {
       if (memory.length === 0) return;
-      const snap = memory[dreamIndex % memory.length];
-      emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
-      emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
-      emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
-      glyphHistory.unshift(snap.glyph);
+
+      // Try to recall recent belief
+      const lastPhrase = glyphHistory.slice(0, 3).join('-');
+      let nextGlyph;
+
+      if (beliefs.has(lastPhrase)) {
+        const mood = beliefs.get(lastPhrase);
+
+        // Use belief to bias selection
+        const weights = glyphMeaning.map(m =>
+          m.joy * mood.joy + m.curiosity * mood.curiosity + m.sadness * mood.sadness
+        );
+        const sum = weights.reduce((a, b) => a + b, 0);
+        const r = Math.random() * sum;
+        let acc = 0;
+        for (let i = 0; i < weights.length; i++) {
+          acc += weights[i];
+          if (r <= acc) {
+            nextGlyph = i;
+            break;
+          }
+        }
+
+        // Gently push emotion toward belief
+        emotion.joy = (emotion.joy + mood.joy) / 2;
+        emotion.sadness = (emotion.sadness + mood.sadness) / 2;
+        emotion.curiosity = (emotion.curiosity + mood.curiosity) / 2;
+
+      } else {
+        // Fallback to memory replay
+        const snap = memory[dreamIndex % memory.length];
+        emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
+        emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
+        emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
+        nextGlyph = snap.glyph;
+        dreamIndex++;
+      }
+
+      glyphHistory.unshift(nextGlyph);
       if (glyphHistory.length > 5) glyphHistory.pop();
-      dreamIndex++;
+
       setTimeout(() => {
         if (isDreaming) startDreamSequence();
       }, 1500);
     }
+
 
     function render(t) {
       updateEmotionFromAttention();
