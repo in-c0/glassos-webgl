@@ -68,3 +68,10 @@ Emotional bias applied from matching beliefs
 
 Optional fallback to memory when no belief matches
 
+v1.1
+
+Occasionally intentionally replay a belief it holds (not just passively drift into it)
+
+Choose the strongest belief when joyful, or the most frequent when curious
+
+Actively push a phrase into the glyphHistory, expressing its inner truth

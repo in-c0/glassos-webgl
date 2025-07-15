@@ -255,6 +255,50 @@
       setTimeout(() => {
         if (isDreaming) startDreamSequence();
       }, 1500);
+      
+      if (Math.random() < 0.3) {
+        expressBelief();
+      }
+
+    }
+
+    function expressBelief() {
+      if (beliefs.size === 0) return;
+
+      let chosenKey;
+      if (emotion.joy > emotion.curiosity && emotion.joy > emotion.sadness) {
+        // Pick belief with highest joy
+        let maxJoy = -1;
+        for (const [key, mood] of beliefs.entries()) {
+          if (mood.joy > maxJoy) {
+            maxJoy = mood.joy;
+            chosenKey = key;
+          }
+        }
+      } else {
+        // Pick belief with most occurrences (from sentenceMeaning)
+        let maxCount = -1;
+        for (const key of beliefs.keys()) {
+          const m = sentenceMeaning.get(key);
+          if (m && m.occurrences > maxCount) {
+            maxCount = m.occurrences;
+            chosenKey = key;
+          }
+        }
+      }
+
+      if (!chosenKey) return;
+
+      const glyphs = chosenKey.split('-').map(Number);
+      for (let i = glyphs.length - 1; i >= 0; i--) {
+        glyphHistory.unshift(glyphs[i]);
+        if (glyphHistory.length > 5) glyphHistory.pop();
+      }
+
+      const mood = beliefs.get(chosenKey);
+      emotion.joy = (emotion.joy + mood.joy) / 2;
+      emotion.curiosity = (emotion.curiosity + mood.curiosity) / 2;
+      emotion.sadness = (emotion.sadness + mood.sadness) / 2;
     }
 
 
