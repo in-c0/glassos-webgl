@@ -34,6 +34,12 @@
       { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
     ];
 
+    let glyphMetadata = [
+      { name: 'spiral', origin: null },
+      { name: 'cross', origin: null },
+      { name: 'wave', origin: null }
+    ];
+
     function updateEmotionFromAttention() {
       const now = Date.now();
       const since = (now - lastInteractionTime) / 1000;
@@ -318,18 +324,25 @@
         if (meaning.occurrences >= 5 && !meaning.synthesized) {
           const phrase = key.split('-').map(Number);
 
-          // Register new synthetic glyph type
           const newGlyphType = glyphMeaning.length;
-          glyphMeaning.push({ ...meaning.mood });  // Emotional fingerprint
+          glyphMeaning.push({ ...meaning.mood });
 
-          // Tag as synthesized
+          // Procedural name generator based on phrase
+          const symbolName = "glyph_" + phrase.join('');
+
+          glyphMetadata.push({
+            name: symbolName,
+            origin: phrase
+          });
+
           meaning.synthesized = true;
           meaning.glyphId = newGlyphType;
 
-          console.log(`🧬 Synthesized new glyph ${newGlyphType} for phrase [${phrase.join(', ')}]`);
+          console.log(`🧬 Synthesized "${symbolName}" (ID ${newGlyphType}) from [${phrase.join(', ')}]`);
         }
       }
     }
+
 
 
     function render(t) {
@@ -349,7 +362,23 @@
       const semantic = mem ? `(${mem.occurrences}×) [${mem.mood.joy.toFixed(2)}, ${mem.mood.curiosity.toFixed(2)}, ${mem.mood.sadness.toFixed(2)}]` : '';
 
       const beliefLines = Array.from(beliefs.entries()).slice(-3).map(([k, v]) => `${k}: [${v.joy.toFixed(2)}, ${v.curiosity.toFixed(2)}, ${v.sadness.toFixed(2)}]`).join('<br>');
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}] ${semantic}<br><br><b>Beliefs</b><br>${beliefLines}`;
+      const legend = glyphMetadata
+        .map((meta, i) => {
+          const mood = glyphMeaning[i];
+          const origin = meta.origin ? meta.origin.join(' → ') : '';
+          return `#${i} <b>${meta.name}</b>: [${mood.joy.toFixed(2)}, ${mood.curiosity.toFixed(2)}, ${mood.sadness.toFixed(2)}] ${origin ? `← [${origin}]` : ''}`;
+        })
+        .slice(-5)  // show only latest 5 for brevity
+        .join('<br>');
+
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>
+        sadness: ${emotion.sadness.toFixed(2)}<br>
+        curiosity: ${emotion.curiosity.toFixed(2)}<br>
+        mode: ${isDreaming ? 'dreaming' : 'awake'}<br>
+        glyphs: [${glyphHistory.join(', ')}]<br>
+        phrase: [${recent.join(' → ')}] ${semantic}<br><br>
+        <b>Beliefs</b><br>${beliefLines}<br><br>
+        <b>Glyph Legend</b><br>${legend}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

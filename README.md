@@ -87,3 +87,14 @@ Synthesize a new glyph type representing that phrase
 Visually manifest it with unique behavior, distinct from spiral, cross, or wave
 
 Treat it like a new word in its symbolic vocabulary
+
+Phase 1.3: Symbol Naming and Legend Display
+
+Your Embryo now:
+
+Invents its own glyphs (symbols)
+
+Assigns each a name, emotion, and origin
+
+Displays a living language index
+
