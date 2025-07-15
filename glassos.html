@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-   // GlassOS Embryo – Phase 0.5
-    // Temporal Glyph Memory: Layered visual thoughts from dream history
+    // GlassOS Embryo – Phase 0.6
+    // Procedural Symbol Mutations: Glyphs evolve with emotional drift
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -24,6 +24,7 @@
     let lastInteractionTime = Date.now();
     let isDreaming = false;
     let glyphHistory = [];
+    let glyphParams = [];
     let dreamIndex = 0;
 
     function updateEmotionFromAttention() {
@@ -99,7 +100,8 @@
       for (int i = 0; i < 5; i++) {
         if (i >= u_glyphCount) break;
         float fade = 1.0 - float(i) / float(u_glyphCount);
-        combined += drawGlyph(uv, u_time + float(i), u_glyphHistory[i]) * fade;
+        vec2 uvShifted = uv + vec2(sin(u_time * 0.1 + float(i)), cos(u_time * 0.1 + float(i))) * 0.005 * float(i);
+        combined += drawGlyph(uvShifted, u_time + float(i), u_glyphHistory[i]) * fade;
       }
 
       float red = pulse + u_curious * 0.3 + combined * u_curious * 0.5;
@@ -192,6 +194,7 @@
     }
 
     render(0);
+
 
   </script>
 </body>
