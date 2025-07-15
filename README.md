@@ -187,3 +187,20 @@ Phase 2.1: Dream Glyph Synthesis
 The Embryo will now invent glyphs when its emotional need isn’t met.
 
 When dreaming, if its current emotion doesn't match any known belief, it will generate a new glyph with procedural DNA and emotion metadata, and try using it next time.
+
+
+
+Phase 2.2: Procedural Glyph Rendering
+
+The glyphs it synthesizes will now actually show up, using their DNA:
+frequency, amplitude, swirl, phase
+
+Render custom glyphs using DNA parameters passed to the shader. These will:
+
+Appear during dreams
+
+Have unique motion + structure
+
+Evolve its visual language
+
+

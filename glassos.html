@@ -41,11 +41,12 @@
       { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
     ];
     
-    let glyphDNA = [
-      null, // spiral is hardcoded
-      null, // cross is hardcoded
-      null  // wave is hardcoded
-    ]; // future glyphs will have DNA
+    const glyphDNA = [
+      { frequency: 10.0, amplitude: 0.3, swirl: 0.0, phase: 0.0 }, // spiral
+      { frequency: 5.0, amplitude: 0.1, swirl: 0.0, phase: 1.0 },  // cross
+      { frequency: 8.0, amplitude: 0.2, swirl: 1.0, phase: 0.5 }   // wave
+    ];
+
 
 
     let glyphMetadata = [
@@ -165,6 +166,7 @@
     uniform float u_curious;
     uniform int u_glyphHistory[5];
     uniform int u_glyphCount;
+    uniform vec4 u_glyphDNAs[16];
 
     float spiral(vec2 uv, float t) {
       float r = length(uv - 0.5);
@@ -203,16 +205,27 @@
       return smoothstep(0.01, 0.015, wave + swirl);
     }
 
-    float drawGlyph(vec2 uv, float t, int glyphType) {
-      if (glyphType == 0) return spiral(uv, t);
-      else if (glyphType == 1) return crossGlyph(uv);
-      else if (glyphType == 2) return wave(uv, t);
-      else {
-        // Retrieve DNA
-        vec4 dna = vec4(float(glyphType) * 0.5, sin(float(glyphType)), cos(float(glyphType)), mod(float(glyphType), 3.0));
-        return customShape(uv, t, dna);
-      }
+    float drawDNA(vec2 uv, float t, vec4 dna) {
+      float freq = dna.x;
+      float amp = dna.y;
+      float swirl = dna.z;
+      float phase = dna.w;
+
+      vec2 centered = uv - 0.5;
+      float r = length(centered);
+      float a = atan(centered.y, centered.x);
+
+      float spiral = sin(freq * r - phase * t + swirl * a);
+      float wave = sin(freq * (uv.x - 0.5) + phase * t);
+
+      return smoothstep(0.01, 0.015, spiral * amp) +
+            smoothstep(0.01, 0.015, wave * amp);
     }
+
+    float drawGlyph(vec2 uv, float t, int glyphType) {
+      return drawDNA(uv, t, u_glyphDNAs[glyphType]);
+    }
+
 
 
     void main() {
@@ -275,6 +288,7 @@
     const u_curious = gl.getUniformLocation(program, 'u_curious');
     const u_glyphHistory = gl.getUniformLocation(program, 'u_glyphHistory');
     const u_glyphCount = gl.getUniformLocation(program, 'u_glyphCount');
+    const u_glyphDNAs = gl.getUniformLocation(program, 'u_glyphDNAs');
 
     const hud = document.createElement('div');
     hud.style.position = 'fixed';
@@ -501,6 +515,15 @@
       const historyArray = glyphHistory.length > 0 ? new Int32Array(glyphHistory) : new Int32Array(5);
       gl.uniform1iv(u_glyphHistory, historyArray);
       gl.uniform1i(u_glyphCount, glyphHistory.length);
+
+      // pass DNA values to fragment shader
+      const flattenedDNA = [];
+      for (let i = 0; i < glyphMeaning.length && i < 16; i++) {
+        const d = glyphDNA[i];
+        flattenedDNA.push(d.frequency, d.amplitude, d.swirl, d.phase);
+      }
+      while (flattenedDNA.length < 64) flattenedDNA.push(0); // pad to vec4[16]
+      gl.uniform4fv(u_glyphDNAs, new Float32Array(flattenedDNA));
 
       const recent = glyphSentences[glyphSentences.length - 1] || [];
       const key = recent.join('-');
