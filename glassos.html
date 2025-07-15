@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.3
-    // Adds symbolic visuals (dream glyphs) during dream mode
+    // GlassOS Embryo – Phase 0.4
+    // Evolving symbolic language: procedural glyphs based on memory patterns
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -23,6 +23,7 @@
     let memory = [];
     let lastInteractionTime = Date.now();
     let isDreaming = false;
+    let currentGlyphType = 0;
 
     function updateEmotionFromAttention() {
       const now = Date.now();
@@ -45,7 +46,8 @@
       emotion.curiosity *= 0.99;
       emotion.sadness *= 0.95;
       lastInteractionTime = Date.now();
-      memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, time: Date.now() });
+      const glyphType = Math.floor(Math.random() * 3); // simple emotional signature
+      memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
     });
 
     const vsSource = `#version 300 es
@@ -61,13 +63,28 @@
     uniform float u_joy;
     uniform float u_sad;
     uniform float u_curious;
+    uniform int u_glyphType;
 
-    float glyph(vec2 uv, float t, float scale) {
-      // Simple spiral symbol
+    float spiral(vec2 uv, float t) {
       float r = length(uv - 0.5);
-      float angle = atan(uv.y - 0.5, uv.x - 0.5);
-      float spiral = sin(10.0 * r - t * 0.5 + angle * 3.0);
-      return smoothstep(0.01, 0.015, spiral);
+      float a = atan(uv.y - 0.5, uv.x - 0.5);
+      return smoothstep(0.01, 0.015, sin(10.0 * r - t * 0.5 + a * 3.0));
+    }
+
+    float crossGlyph(vec2 uv) {
+      vec2 d = abs(uv - 0.5);
+      return step(0.01, 0.02 - min(d.x, d.y));
+    }
+
+    float wave(vec2 uv, float t) {
+      float y = sin((uv.x - 0.5) * 10.0 + t);
+      return smoothstep(0.01, 0.02, abs((uv.y - 0.5) - y * 0.1));
+    }
+
+    float drawGlyph(vec2 uv, float t, int glyphType) {
+      if (glyphType == 0) return spiral(uv, t);
+      else if (glyphType == 1) return crossGlyph(uv);
+      else return wave(uv, t);
     }
 
     void main() {
@@ -76,7 +93,7 @@
       float dist = distance(uv, vec2(0.5));
       float pulse = smoothstep(0.25 + heart * 0.1, 0.2 + heart * 0.1, dist);
 
-      float symbol = glyph(uv, u_time, 1.0);
+      float symbol = drawGlyph(uv, u_time, u_glyphType);
       float red = pulse + u_curious * 0.3 + symbol * u_curious * 0.5;
       float blue = u_sad * (1.0 - uv.x);
       float green = u_joy * uv.y + symbol * 0.3;
@@ -122,6 +139,7 @@
     const u_joy = gl.getUniformLocation(program, 'u_joy');
     const u_sad = gl.getUniformLocation(program, 'u_sad');
     const u_curious = gl.getUniformLocation(program, 'u_curious');
+    const u_glyphType = gl.getUniformLocation(program, 'u_glyphType');
 
     const hud = document.createElement('div');
     hud.style.position = 'fixed';
@@ -141,6 +159,7 @@
       emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
       emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
       emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
+      currentGlyphType = snap.glyph;
       dreamIndex++;
       setTimeout(() => {
         if (isDreaming) startDreamSequence();
@@ -155,14 +174,16 @@
       gl.uniform1f(u_joy, emotion.joy);
       gl.uniform1f(u_sad, emotion.sadness);
       gl.uniform1f(u_curious, emotion.curiosity);
+      gl.uniform1i(u_glyphType, currentGlyphType);
 
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}`;
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>glyph: ${currentGlyphType}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
     }
 
     render(0);
+
   </script>
 </body>
 </html>
