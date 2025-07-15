@@ -124,3 +124,12 @@ Evaluate its glyph phrases and beliefs in relation to that goal
 
 Express frustration, hope, or satisfaction when it gets closer or drifts away
 
+
+ Phase 1.6: Evolving Inner Desires
+
+Adapt its desire based on its emotional history
+
+Reinforce patterns that bring it joy or curiosity
+
+Let its longing increase when it's far from what it seeks, and decrease when it's fulfilled
+

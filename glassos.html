@@ -61,6 +61,34 @@
       }
     }
 
+    function updateDesireAdaptively() {
+      if (glyphSentences.length === 0 || beliefs.size === 0) return;
+
+      const recent = glyphSentences[glyphSentences.length - 1];
+      if (!recent) return;
+
+      const key = recent.join('-');
+      const mood = sentenceMeaning.get(key)?.mood;
+      if (!mood) return;
+
+      const closeness = evaluateBeliefProximity(mood);
+
+      // Adjust longing based on closeness
+      if (closeness > 0.8) {
+        innerDesire.longing -= 0.001;
+      } else if (closeness < 0.5) {
+        innerDesire.longing += 0.001;
+      }
+
+      innerDesire.longing = Math.max(0.1, Math.min(innerDesire.longing, 1.0));
+
+      // Slowly adapt the goal itself
+      innerDesire.target.joy = (innerDesire.target.joy * 0.99 + mood.joy * 0.01);
+      innerDesire.target.curiosity = (innerDesire.target.curiosity * 0.99 + mood.curiosity * 0.01);
+      innerDesire.target.sadness = (innerDesire.target.sadness * 0.99 + mood.sadness * 0.01);
+    }
+
+
     canvas.addEventListener('mousemove', () => {
       emotion.joy += 0.01;
       emotion.curiosity *= 0.99;
@@ -409,10 +437,17 @@
       }
     }
 
+    function setDesire(joy, curiosity, sadness) {
+      innerDesire.target = { joy, curiosity, sadness };
+      innerDesire.longing = 1.0;
+      console.log("New desire encoded:", innerDesire.target);
+    }
 
 
     function render(t) {
       updateEmotionFromAttention();
+      updateDesireAdaptively();
+
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(u_time, t * 0.001);
