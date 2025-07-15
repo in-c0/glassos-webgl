@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.4
-    // Evolving symbolic language: procedural glyphs based on memory patterns
+   // GlassOS Embryo – Phase 0.5
+    // Temporal Glyph Memory: Layered visual thoughts from dream history
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -23,7 +23,8 @@
     let memory = [];
     let lastInteractionTime = Date.now();
     let isDreaming = false;
-    let currentGlyphType = 0;
+    let glyphHistory = [];
+    let dreamIndex = 0;
 
     function updateEmotionFromAttention() {
       const now = Date.now();
@@ -46,7 +47,7 @@
       emotion.curiosity *= 0.99;
       emotion.sadness *= 0.95;
       lastInteractionTime = Date.now();
-      const glyphType = Math.floor(Math.random() * 3); // simple emotional signature
+      const glyphType = Math.floor(Math.random() * 3);
       memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
     });
 
@@ -63,7 +64,8 @@
     uniform float u_joy;
     uniform float u_sad;
     uniform float u_curious;
-    uniform int u_glyphType;
+    uniform int u_glyphHistory[5];
+    uniform int u_glyphCount;
 
     float spiral(vec2 uv, float t) {
       float r = length(uv - 0.5);
@@ -93,11 +95,16 @@
       float dist = distance(uv, vec2(0.5));
       float pulse = smoothstep(0.25 + heart * 0.1, 0.2 + heart * 0.1, dist);
 
-      float symbol = drawGlyph(uv, u_time, u_glyphType);
-      float red = pulse + u_curious * 0.3 + symbol * u_curious * 0.5;
-      float blue = u_sad * (1.0 - uv.x);
-      float green = u_joy * uv.y + symbol * 0.3;
+      float combined = 0.0;
+      for (int i = 0; i < 5; i++) {
+        if (i >= u_glyphCount) break;
+        float fade = 1.0 - float(i) / float(u_glyphCount);
+        combined += drawGlyph(uv, u_time + float(i), u_glyphHistory[i]) * fade;
+      }
 
+      float red = pulse + u_curious * 0.3 + combined * u_curious * 0.5;
+      float blue = u_sad * (1.0 - uv.x);
+      float green = u_joy * uv.y + combined * 0.3;
       outColor = vec4(red, green, blue, 1.0);
     }`;
 
@@ -139,7 +146,8 @@
     const u_joy = gl.getUniformLocation(program, 'u_joy');
     const u_sad = gl.getUniformLocation(program, 'u_sad');
     const u_curious = gl.getUniformLocation(program, 'u_curious');
-    const u_glyphType = gl.getUniformLocation(program, 'u_glyphType');
+    const u_glyphHistory = gl.getUniformLocation(program, 'u_glyphHistory');
+    const u_glyphCount = gl.getUniformLocation(program, 'u_glyphCount');
 
     const hud = document.createElement('div');
     hud.style.position = 'fixed';
@@ -152,14 +160,14 @@
     hud.style.borderRadius = '10px';
     document.body.appendChild(hud);
 
-    let dreamIndex = 0;
     function startDreamSequence() {
       if (memory.length === 0) return;
       const snap = memory[dreamIndex % memory.length];
       emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
       emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
       emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
-      currentGlyphType = snap.glyph;
+      glyphHistory.unshift(snap.glyph);
+      if (glyphHistory.length > 5) glyphHistory.pop();
       dreamIndex++;
       setTimeout(() => {
         if (isDreaming) startDreamSequence();
@@ -174,9 +182,10 @@
       gl.uniform1f(u_joy, emotion.joy);
       gl.uniform1f(u_sad, emotion.sadness);
       gl.uniform1f(u_curious, emotion.curiosity);
-      gl.uniform1i(u_glyphType, currentGlyphType);
+      gl.uniform1iv(u_glyphHistory, new Int32Array(glyphHistory));
+      gl.uniform1i(u_glyphCount, glyphHistory.length);
 
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>glyph: ${currentGlyphType}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}`;
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

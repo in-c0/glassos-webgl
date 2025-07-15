@@ -15,3 +15,9 @@ Each memory now encodes a glyphType (spiral, cross, wave)
 Dreaming mode replays these glyphs — each emotion leaves its own visual mark
 
 The HUD now shows which glyph it’s dreaming
+
+Stores and replays up to 5 past glyphs like symbolic memory
+
+Blends glyphs together with fading intensity (newer = brighter)
+
+HUD shows active glyph history
