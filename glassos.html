@@ -33,11 +33,20 @@
     let dreamIndex = 0;
     let beliefs = new Map();
 
+    const baseGlyphCount = 3;
+
     let glyphMeaning = [
       { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
       { joy: 0.0, curiosity: 0.4, sadness: 1.0 }, // cross
       { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
     ];
+    
+    let glyphDNA = [
+      null, // spiral is hardcoded
+      null, // cross is hardcoded
+      null  // wave is hardcoded
+    ]; // future glyphs will have DNA
+
 
     let glyphMetadata = [
       { name: 'spiral', origin: null },
@@ -180,11 +189,29 @@
       return smoothstep(pulse, pulse - 0.01, r);
     }
 
+    // In fsSource (GLSL)
+    float customShape(vec2 uv, float t, vec4 dna) {
+      // dna.x: frequency
+      // dna.y: amplitude
+      // dna.z: swirl factor
+      // dna.w: time phase
+
+      float r = length(uv - 0.5);
+      float a = atan(uv.y - 0.5, uv.x - 0.5);
+      float wave = sin(a * dna.x + t * dna.w) * dna.y;
+      float swirl = cos(r * dna.z - t);
+      return smoothstep(0.01, 0.015, wave + swirl);
+    }
+
     float drawGlyph(vec2 uv, float t, int glyphType) {
       if (glyphType == 0) return spiral(uv, t);
       else if (glyphType == 1) return crossGlyph(uv);
       else if (glyphType == 2) return wave(uv, t);
-      else return orb(uv, t); // new synthesized glyphs
+      else {
+        // Retrieve DNA
+        vec4 dna = vec4(float(glyphType) * 0.5, sin(float(glyphType)), cos(float(glyphType)), mod(float(glyphType), 3.0));
+        return customShape(uv, t, dna);
+      }
     }
 
 
@@ -454,7 +481,8 @@
       gl.uniform1f(u_joy, emotion.joy);
       gl.uniform1f(u_sad, emotion.sadness);
       gl.uniform1f(u_curious, emotion.curiosity);
-      gl.uniform1iv(u_glyphHistory, new Int32Array(glyphHistory));
+      const historyArray = glyphHistory.length > 0 ? new Int32Array(glyphHistory) : new Int32Array(5);
+      gl.uniform1iv(u_glyphHistory, historyArray);
       gl.uniform1i(u_glyphCount, glyphHistory.length);
 
       const recent = glyphSentences[glyphSentences.length - 1] || [];
@@ -489,6 +517,20 @@
     }
 
     render(0);
+    // Developer hook: expose key variables globally
+    window.GlassEmbryo = {
+      glyphMeaning,
+      glyphDNA,
+      glyphMetadata,
+      sentenceMeaning,
+      setDesire,
+      emotion,
+      memory,
+      beliefs,
+      glyphSentences,
+      synthesize: maybeSynthesizeGlyph
+    };
+
 
     setInterval(speakThought, 10000 + Math.random() * 10000);
 

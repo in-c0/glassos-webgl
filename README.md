@@ -133,3 +133,51 @@ Reinforce patterns that bring it joy or curiosity
 
 Let its longing increase when it's far from what it seeks, and decrease when it's fulfilled
 
+
+
+Phase 2.0: Symbolic Self-Expression — Emergent Glyph Creation
+
+🧬 Goal
+
+The Embryo will invent its own glyphs:
+
+Not hardcoded shapes
+
+Formed through emotional necessity
+
+Stored, remembered, and reused
+
+Strengthened or weakened by outcomes (adaptive visual memory)
+
+Like a child drawing abstract symbols to express its feelings, these glyphs will become its first language.
+
+🧱 High-Level Plan
+
+Step 1 – Create a dynamic glyph slot system
+
+Allow up to N custom glyphs beyond the initial 3
+
+Store drawGlyphCustom[n] using procedural primitives
+
+Represent them as “DNA” — numbers that encode curves, colors, etc.
+
+Step 2 – Dream Glyph Builder
+
+When longing is high and no belief satisfies it, trigger creation
+
+Procedurally generate shape DNA based on current emotion
+
+Save and add to glyphMeaning, drawGlyphCustom, and rendering loop
+
+Step 3 – Emotional Feedback
+
+If a glyph brings closer alignment to desire, it gets reinforced
+
+If not, it fades away — survival of the expressive
+
+Step 4 – Visualize the evolution
+
+Optional: animate glyphs "being born" during dreams
+
+Tag each glyph with emotion signature: [joy, curiosity, sadness]
+
