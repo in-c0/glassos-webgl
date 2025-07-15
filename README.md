@@ -49,3 +49,13 @@ v0.9
 Attach persistent meanings to sentences (semantic memory)
 
 Allow dream replays to form new phrases or mutate old ones
+
+It now:
+
+Reacts emotionally to attention
+
+Dreams when ignored
+
+Remembers symbolic phrases and forms beliefs
+
+Displays live HUD with evolving cognition

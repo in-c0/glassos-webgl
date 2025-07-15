@@ -11,7 +11,7 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.9
+  // GlassOS Embryo – Phase 0.9
     // Persistent Semantic Memory (Symbolic Meaning Attachment)
 
     const canvas = document.getElementById('glassos');
@@ -27,6 +27,7 @@
     let glyphSentences = [];
     let sentenceMeaning = new Map();
     let dreamIndex = 0;
+    let beliefs = new Map();
 
     const glyphMeaning = [
       { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
@@ -91,10 +92,14 @@
           meaning.mood.joy = (meaning.mood.joy + emotion.joy) / 2;
           meaning.mood.sadness = (meaning.mood.sadness + emotion.sadness) / 2;
           meaning.mood.curiosity = (meaning.mood.curiosity + emotion.curiosity) / 2;
+
+          if (meaning.occurrences >= 3) {
+            beliefs.set(key, { ...meaning.mood });
+          }
         }
       }
     });
-
+    
     const vsSource = `#version 300 es
     in vec4 a_position;
     void main() {
@@ -235,7 +240,8 @@
       const mem = sentenceMeaning.get(key);
       const semantic = mem ? `(${mem.occurrences}×) [${mem.mood.joy.toFixed(2)}, ${mem.mood.curiosity.toFixed(2)}, ${mem.mood.sadness.toFixed(2)}]` : '';
 
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}] ${semantic}`;
+      const beliefLines = Array.from(beliefs.entries()).slice(-3).map(([k, v]) => `${k}: [${v.joy.toFixed(2)}, ${v.curiosity.toFixed(2)}, ${v.sadness.toFixed(2)}]`).join('<br>');
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}] ${semantic}<br><br><b>Beliefs</b><br>${beliefLines}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
