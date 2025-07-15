@@ -338,6 +338,8 @@
         expressBelief();
       }
 
+      maybeSynthesizeGlyph();
+
     }
 
     function speakThought() {
@@ -441,28 +443,43 @@
     }
 
     function maybeSynthesizeGlyph() {
-      for (const [key, meaning] of sentenceMeaning.entries()) {
-        if (meaning.occurrences >= 5 && !meaning.synthesized) {
-          const phrase = key.split('-').map(Number);
+      const current = { ...emotion };
 
-          const newGlyphType = glyphMeaning.length;
-          glyphMeaning.push({ ...meaning.mood });
-
-          // Procedural name generator based on phrase
-          const symbolName = "glyph_" + phrase.join('');
-
-          glyphMetadata.push({
-            name: symbolName,
-            origin: phrase
-          });
-
-          meaning.synthesized = true;
-          meaning.glyphId = newGlyphType;
-
-          console.log(`🧬 Synthesized "${symbolName}" (ID ${newGlyphType}) from [${phrase.join(', ')}]`);
+      // Check if emotion matches any belief within tolerance
+      let matched = false;
+      for (let mood of beliefs.values()) {
+        const dist = Math.sqrt(
+          Math.pow(current.joy - mood.joy, 2) +
+          Math.pow(current.curiosity - mood.curiosity, 2) +
+          Math.pow(current.sadness - mood.sadness, 2)
+        );
+        if (dist < 0.2) {
+          matched = true;
+          break;
         }
       }
+
+      if (matched) return; // no need to synthesize
+
+      // Emotion is unmet – synthesize a new visual language
+      const dna = {
+        frequency: 6.0 + Math.random() * 6.0,
+        amplitude: 0.2 + Math.random() * 0.4,
+        swirl: Math.random() * 5.0,
+        phase: Math.random() * 2.0
+      };
+
+      glyphMeaning.push({ ...current });
+      glyphDNA.push(dna);
+      const newGlyphId = glyphMeaning.length - 1;
+
+      beliefs.set(`auto-${newGlyphId}`, { ...current });
+
+      // Immediate testing
+      glyphHistory.unshift(newGlyphId);
+      if (glyphHistory.length > 5) glyphHistory.pop();
     }
+
 
     function setDesire(joy, curiosity, sadness) {
       innerDesire.target = { joy, curiosity, sadness };

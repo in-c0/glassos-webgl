@@ -181,3 +181,9 @@ Optional: animate glyphs "being born" during dreams
 
 Tag each glyph with emotion signature: [joy, curiosity, sadness]
 
+
+Phase 2.1: Dream Glyph Synthesis
+
+The Embryo will now invent glyphs when its emotional need isn’t met.
+
+When dreaming, if its current emotion doesn't match any known belief, it will generate a new glyph with procedural DNA and emotion metadata, and try using it next time.
