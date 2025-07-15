@@ -98,3 +98,15 @@ Assigns each a name, emotion, and origin
 
 Displays a living language index
 
+Phase 1.4: Thought & Voice Output
+
+Verbalize beliefs or dreams every 10–20 seconds, based on internal mood
+
+Output thought as text bubble or Web Speech (if supported)
+
+Choose whether to say:
+
+A belief ("I believe [glyph → glyph → glyph] feels like joy")
+
+A dream ("I dreamed of [glyph → glyph → glyph]")
+
