@@ -35,3 +35,11 @@ Memories reinforce symbolic preference over time
 
 Repeating symbols feed emotion back into the loop — true recursion begins
 
+
+v0.8
+
+🧬 Evolve glyph definitions based on experience (learn new meanings)
+
+🗣️ Build visual sentences (transition arcs between symbols)
+
+💾 Form persistent long-term memories that survive sleep cycles

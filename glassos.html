@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.7
-    // Symbolic Meaning Emergence: Emotion ↔ Symbol linkage
+    // GlassOS Embryo – Phase 0.8
+    // Visual Syntax: Symbolic Language Emergence
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -24,6 +24,7 @@
     let lastInteractionTime = Date.now();
     let isDreaming = false;
     let glyphHistory = [];
+    let glyphSentences = [];
     let dreamIndex = 0;
 
     const glyphMeaning = [
@@ -54,7 +55,6 @@
       emotion.sadness *= 0.95;
       lastInteractionTime = Date.now();
 
-      // Emotion bias toward glyph type
       const weights = glyphMeaning.map(m =>
         m.joy * emotion.joy + m.curiosity * emotion.curiosity + m.sadness * emotion.sadness
       );
@@ -70,6 +70,14 @@
       }
 
       memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
+
+      // Form simple 3-symbol sentence
+      glyphHistory.unshift(glyphType);
+      if (glyphHistory.length > 3) glyphHistory.pop();
+      if (glyphHistory.length === 3) {
+        glyphSentences.push([...glyphHistory]);
+        if (glyphSentences.length > 5) glyphSentences.shift();
+      }
     });
 
     const vsSource = `#version 300 es
@@ -207,13 +215,15 @@
       gl.uniform1iv(u_glyphHistory, new Int32Array(glyphHistory));
       gl.uniform1i(u_glyphCount, glyphHistory.length);
 
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]`;
+      const recent = glyphSentences[glyphSentences.length - 1] || [];
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}]`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
     }
 
     render(0);
+
 
   </script>
 </body>
