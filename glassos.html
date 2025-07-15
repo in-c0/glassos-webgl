@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.2
-    // Adds dream mode: visual replay of past emotional states when idle
+    // GlassOS Embryo – Phase 0.3
+    // Adds symbolic visuals (dream glyphs) during dream mode
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -62,14 +62,25 @@
     uniform float u_sad;
     uniform float u_curious;
 
+    float glyph(vec2 uv, float t, float scale) {
+      // Simple spiral symbol
+      float r = length(uv - 0.5);
+      float angle = atan(uv.y - 0.5, uv.x - 0.5);
+      float spiral = sin(10.0 * r - t * 0.5 + angle * 3.0);
+      return smoothstep(0.01, 0.015, spiral);
+    }
+
     void main() {
       vec2 uv = gl_FragCoord.xy / 512.0;
       float heart = abs(sin(u_time * 2.0)) * u_joy;
       float dist = distance(uv, vec2(0.5));
       float pulse = smoothstep(0.25 + heart * 0.1, 0.2 + heart * 0.1, dist);
-      float red = pulse + u_curious * 0.3;
+
+      float symbol = glyph(uv, u_time, 1.0);
+      float red = pulse + u_curious * 0.3 + symbol * u_curious * 0.5;
       float blue = u_sad * (1.0 - uv.x);
-      float green = u_joy * uv.y;
+      float green = u_joy * uv.y + symbol * 0.3;
+
       outColor = vec4(red, green, blue, 1.0);
     }`;
 
@@ -127,7 +138,6 @@
     function startDreamSequence() {
       if (memory.length === 0) return;
       const snap = memory[dreamIndex % memory.length];
-      // slight distortion to show 'dreaming', not copying
       emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
       emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
       emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
@@ -153,7 +163,6 @@
     }
 
     render(0);
-
   </script>
 </body>
 </html>
