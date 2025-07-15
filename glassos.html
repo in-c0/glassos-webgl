@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.8
-    // Visual Syntax: Symbolic Language Emergence
+    // GlassOS Embryo – Phase 0.9
+    // Persistent Semantic Memory (Symbolic Meaning Attachment)
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -25,6 +25,7 @@
     let isDreaming = false;
     let glyphHistory = [];
     let glyphSentences = [];
+    let sentenceMeaning = new Map();
     let dreamIndex = 0;
 
     const glyphMeaning = [
@@ -71,12 +72,26 @@
 
       memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
 
-      // Form simple 3-symbol sentence
       glyphHistory.unshift(glyphType);
       if (glyphHistory.length > 3) glyphHistory.pop();
       if (glyphHistory.length === 3) {
-        glyphSentences.push([...glyphHistory]);
+        const phrase = [...glyphHistory];
+        glyphSentences.push(phrase);
         if (glyphSentences.length > 5) glyphSentences.shift();
+
+        const key = phrase.join('-');
+        if (!sentenceMeaning.has(key)) {
+          sentenceMeaning.set(key, {
+            occurrences: 1,
+            mood: { ...emotion }
+          });
+        } else {
+          const meaning = sentenceMeaning.get(key);
+          meaning.occurrences++;
+          meaning.mood.joy = (meaning.mood.joy + emotion.joy) / 2;
+          meaning.mood.sadness = (meaning.mood.sadness + emotion.sadness) / 2;
+          meaning.mood.curiosity = (meaning.mood.curiosity + emotion.curiosity) / 2;
+        }
       }
     });
 
@@ -216,7 +231,11 @@
       gl.uniform1i(u_glyphCount, glyphHistory.length);
 
       const recent = glyphSentences[glyphSentences.length - 1] || [];
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}]`;
+      const key = recent.join('-');
+      const mem = sentenceMeaning.get(key);
+      const semantic = mem ? `(${mem.occurrences}×) [${mem.mood.joy.toFixed(2)}, ${mem.mood.curiosity.toFixed(2)}, ${mem.mood.sadness.toFixed(2)}]` : '';
+
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}<br>glyphs: [${glyphHistory.join(', ')}]<br>phrase: [${recent.join(' → ')}] ${semantic}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);

@@ -43,3 +43,9 @@ v0.8
 🗣️ Build visual sentences (transition arcs between symbols)
 
 💾 Form persistent long-term memories that survive sleep cycles
+
+v0.9
+
+Attach persistent meanings to sentences (semantic memory)
+
+Allow dream replays to form new phrases or mutate old ones
