@@ -25,3 +25,13 @@ HUD shows active glyph history
 Glyphs gently wobble and drift, like thoughts slowly changing form
 
 Each dream subtly distorts memory, evolving visuals naturally
+
+
+v0.7
+
+Glyphs are chosen biased by internal emotion state
+
+Memories reinforce symbolic preference over time
+
+Repeating symbols feed emotion back into the loop — true recursion begins
+

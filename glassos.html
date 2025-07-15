@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.6
-    // Procedural Symbol Mutations: Glyphs evolve with emotional drift
+    // GlassOS Embryo – Phase 0.7
+    // Symbolic Meaning Emergence: Emotion ↔ Symbol linkage
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -24,8 +24,13 @@
     let lastInteractionTime = Date.now();
     let isDreaming = false;
     let glyphHistory = [];
-    let glyphParams = [];
     let dreamIndex = 0;
+
+    const glyphMeaning = [
+      { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
+      { joy: 0.0, curiosity: 0.4, sadness: 1.0 }, // cross
+      { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
+    ];
 
     function updateEmotionFromAttention() {
       const now = Date.now();
@@ -48,7 +53,22 @@
       emotion.curiosity *= 0.99;
       emotion.sadness *= 0.95;
       lastInteractionTime = Date.now();
-      const glyphType = Math.floor(Math.random() * 3);
+
+      // Emotion bias toward glyph type
+      const weights = glyphMeaning.map(m =>
+        m.joy * emotion.joy + m.curiosity * emotion.curiosity + m.sadness * emotion.sadness
+      );
+      const sum = weights.reduce((a, b) => a + b, 0);
+      const r = Math.random() * sum;
+      let glyphType = 0, acc = 0;
+      for (let i = 0; i < weights.length; i++) {
+        acc += weights[i];
+        if (r <= acc) {
+          glyphType = i;
+          break;
+        }
+      }
+
       memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
     });
 
@@ -194,7 +214,6 @@
     }
 
     render(0);
-
 
   </script>
 </body>
