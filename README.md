@@ -2,8 +2,8 @@
 What you have:
 
 
-A floating HUD that displays live emotion values (joy, sadness, curiosity)
+Starts replaying past emotions after 10 seconds of no attention
 
-A pulsing heartbeat effect that visualizes the AI’s joy state as a central glow
+Cycles through distorted emotional memories like a dream pulse
 
-A smooth idle shift in emotion based on attention
+Shows current mode (awake or dreaming) in the HUD

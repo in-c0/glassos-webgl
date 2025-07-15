@@ -11,8 +11,8 @@
 <body>
   <canvas id="glassos" width="512" height="512"></canvas>
   <script type="module">
-    // GlassOS Embryo – Phase 0.1
-    // Now includes floating HUD and pulsing emotion-based heartbeat
+    // GlassOS Embryo – Phase 0.2
+    // Adds dream mode: visual replay of past emotional states when idle
 
     const canvas = document.getElementById('glassos');
     const gl = canvas.getContext('webgl2');
@@ -22,14 +22,21 @@
     let emotion = { joy: 0.5, curiosity: 0.5, sadness: 0.0 };
     let memory = [];
     let lastInteractionTime = Date.now();
+    let isDreaming = false;
 
     function updateEmotionFromAttention() {
       const now = Date.now();
       const since = (now - lastInteractionTime) / 1000;
-      if (since > 5) {
+      if (since > 10) {
+        if (!isDreaming && memory.length > 0) {
+          isDreaming = true;
+          startDreamSequence();
+        }
         emotion.joy *= 0.995;
         emotion.sadness += 0.001;
         emotion.curiosity += 0.001;
+      } else {
+        isDreaming = false;
       }
     }
 
@@ -38,7 +45,7 @@
       emotion.curiosity *= 0.99;
       emotion.sadness *= 0.95;
       lastInteractionTime = Date.now();
-      memory.push({ joy: emotion.joy, time: Date.now() });
+      memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, time: Date.now() });
     });
 
     const vsSource = `#version 300 es
@@ -57,16 +64,12 @@
 
     void main() {
       vec2 uv = gl_FragCoord.xy / 512.0;
-
-      // Heartbeat pulse
       float heart = abs(sin(u_time * 2.0)) * u_joy;
       float dist = distance(uv, vec2(0.5));
       float pulse = smoothstep(0.25 + heart * 0.1, 0.2 + heart * 0.1, dist);
-
       float red = pulse + u_curious * 0.3;
       float blue = u_sad * (1.0 - uv.x);
       float green = u_joy * uv.y;
-
       outColor = vec4(red, green, blue, 1.0);
     }`;
 
@@ -109,7 +112,6 @@
     const u_sad = gl.getUniformLocation(program, 'u_sad');
     const u_curious = gl.getUniformLocation(program, 'u_curious');
 
-    // Create floating HUD
     const hud = document.createElement('div');
     hud.style.position = 'fixed';
     hud.style.bottom = '10px';
@@ -121,9 +123,22 @@
     hud.style.borderRadius = '10px';
     document.body.appendChild(hud);
 
+    let dreamIndex = 0;
+    function startDreamSequence() {
+      if (memory.length === 0) return;
+      const snap = memory[dreamIndex % memory.length];
+      // slight distortion to show 'dreaming', not copying
+      emotion.joy = snap.joy * (0.95 + Math.random() * 0.1);
+      emotion.sadness = snap.sadness * (0.95 + Math.random() * 0.1);
+      emotion.curiosity = snap.curiosity * (0.95 + Math.random() * 0.1);
+      dreamIndex++;
+      setTimeout(() => {
+        if (isDreaming) startDreamSequence();
+      }, 1500);
+    }
+
     function render(t) {
       updateEmotionFromAttention();
-
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.uniform1f(u_time, t * 0.001);
@@ -131,7 +146,7 @@
       gl.uniform1f(u_sad, emotion.sadness);
       gl.uniform1f(u_curious, emotion.curiosity);
 
-      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}`;
+      hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>sadness: ${emotion.sadness.toFixed(2)}<br>curiosity: ${emotion.curiosity.toFixed(2)}<br>mode: ${isDreaming ? 'dreaming' : 'awake'}`;
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
