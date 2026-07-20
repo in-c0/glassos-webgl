@@ -32,6 +32,58 @@
     let sentenceMeaning = new Map();
     let dreamIndex = 0;
     let beliefs = new Map();
+    let conceptClusters = new Map(); // key = clusterName, value = Set of sentence keys
+
+    function updateConceptClusters(key, mood) {
+      for (let [cluster, keys] of conceptClusters.entries()) {
+        const centroid = Array.from(keys).reduce((acc, k) => {
+          const m = sentenceMeaning.get(k)?.mood;
+          if (!m) return acc;
+          acc.joy += m.joy;
+          acc.curiosity += m.curiosity;
+          acc.sadness += m.sadness;
+          return acc;
+        }, { joy: 0, curiosity: 0, sadness: 0 });
+
+        const len = keys.size;
+        if (len === 0) continue;
+        centroid.joy /= len;
+        centroid.curiosity /= len;
+        centroid.sadness /= len;
+
+        const dist = Math.sqrt(
+          (centroid.joy - mood.joy)**2 +
+          (centroid.curiosity - mood.curiosity)**2 +
+          (centroid.sadness - mood.sadness)**2
+        );
+
+        if (dist < 0.2) {
+          keys.add(key);
+          return;
+        }
+      }
+
+      // If no cluster matched, create a new one
+      const clusterName = "C" + (conceptClusters.size + 1);
+      conceptClusters.set(clusterName, new Set([key]));
+    }
+
+
+    let symbolNames = new Map();
+    let nextNameId = 0;
+
+    function generateSymbolName() {
+      const consonants = ['k','l','m','n','s','t','v','z','r'];
+      const vowels = ['a','e','i','o','u'];
+      const syllables = [];
+      for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+        syllables.push(
+          consonants[Math.floor(Math.random() * consonants.length)] +
+          vowels[Math.floor(Math.random() * vowels.length)]
+        );
+      }
+      return syllables.join('');
+    }
 
     const baseGlyphCount = 3;
 
@@ -129,13 +181,15 @@
         if (glyphSentences.length > 5) glyphSentences.shift();
 
         const key = phrase.join('-');
+        let meaning;
         if (!sentenceMeaning.has(key)) {
-          sentenceMeaning.set(key, {
+          meaning = {
             occurrences: 1,
             mood: { ...emotion }
-          });
+          };
+          sentenceMeaning.set(key, meaning);
         } else {
-          const meaning = sentenceMeaning.get(key);
+          meaning = sentenceMeaning.get(key);
           meaning.occurrences++;
           meaning.mood.joy = (meaning.mood.joy + emotion.joy) / 2;
           meaning.mood.sadness = (meaning.mood.sadness + emotion.sadness) / 2;
@@ -146,7 +200,10 @@
           }
 
           maybeSynthesizeGlyph();
+        }
 
+        if (meaning.occurrences >= 2) {
+          updateConceptClusters(key, meaning.mood);
         }
       }
     });
@@ -459,40 +516,58 @@
     function maybeSynthesizeGlyph() {
       const current = { ...emotion };
 
-      // Check if emotion matches any belief within tolerance
-      let matched = false;
-      for (let mood of beliefs.values()) {
+      // Check if current emotion is similar to any belief
+      let closestKey = null;
+      let closestDist = Infinity;
+
+      for (let [k, mood] of beliefs.entries()) {
         const dist = Math.sqrt(
           Math.pow(current.joy - mood.joy, 2) +
           Math.pow(current.curiosity - mood.curiosity, 2) +
           Math.pow(current.sadness - mood.sadness, 2)
         );
-        if (dist < 0.2) {
-          matched = true;
-          break;
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestKey = k;
         }
       }
 
-      if (matched) return; // no need to synthesize
+      let newGlyphIndex;
+      if (closestDist < 0.25) {
+        // 🔁 mutate existing
+        const baseIndex = parseInt(closestKey.split('-').pop());
+        const baseDNA = glyphDNA[baseIndex];
+        const mutated = {
+          frequency: baseDNA.frequency * (0.95 + Math.random() * 0.1),
+          amplitude: baseDNA.amplitude * (0.95 + Math.random() * 0.1),
+          swirl: baseDNA.swirl + (Math.random() - 0.5) * 0.2,
+          phase: baseDNA.phase + (Math.random() - 0.5) * 0.2
+        };
+        glyphDNA.push(mutated);
+        glyphMeaning.push(current);
+        newGlyphIndex = glyphMeaning.length - 1;
 
-      // Emotion is unmet – synthesize a new visual language
-      const dna = {
-        frequency: 6.0 + Math.random() * 6.0,
-        amplitude: 0.2 + Math.random() * 0.4,
-        swirl: Math.random() * 5.0,
-        phase: Math.random() * 2.0
-      };
+      } else {
+        // 🌱 synthesize novel
+        const dna = {
+          frequency: 6.0 + Math.random() * 6.0,
+          amplitude: 0.2 + Math.random() * 0.4,
+          swirl: Math.random() * 5.0,
+          phase: Math.random() * 2.0
+        };
+        glyphDNA.push(dna);
+        glyphMeaning.push(current);
+        newGlyphIndex = glyphMeaning.length - 1;
+      }
 
-      glyphMeaning.push({ ...current });
-      glyphDNA.push(dna);
-      const newGlyphId = glyphMeaning.length - 1;
+      const name = generateSymbolName();
+      symbolNames.set(newGlyphIndex, name);
+      beliefs.set(`auto-${newGlyphIndex}`, current);
 
-      beliefs.set(`auto-${newGlyphId}`, { ...current });
-
-      // Immediate testing
-      glyphHistory.unshift(newGlyphId);
+      glyphHistory.unshift(newGlyphIndex);
       if (glyphHistory.length > 5) glyphHistory.pop();
     }
+
 
 
     function setDesire(joy, curiosity, sadness) {
@@ -501,6 +576,23 @@
       console.log("New desire encoded:", innerDesire.target);
     }
 
+    function innerMonologue() {
+      if (glyphSentences.length === 0) return '';
+
+      const recentKey = glyphSentences[glyphSentences.length - 1].join('-');
+      const cluster = Array.from(conceptClusters.entries()).find(([_, set]) => set.has(recentKey));
+      if (!cluster) return '';
+
+      const [clusterName, set] = cluster;
+      const sampledKeys = Array.from(set).sort(() => 0.5 - Math.random()).slice(0, 3);
+
+      const phrases = sampledKeys.map(k => {
+        const parts = k.split('-').map(i => symbolNames.get(Number(i)) || '?');
+        return parts.join(' ');
+      });
+
+      return phrases.join(' … ');
+    }
 
     function render(t) {
       updateEmotionFromAttention();
@@ -540,6 +632,7 @@
         .slice(-5)  // show only latest 5 for brevity
         .join('<br>');
 
+      const names = glyphHistory.map(i => symbolNames.get(i) || '?').join(' → ');
       hud.innerHTML = `joy: ${emotion.joy.toFixed(2)}<br>
         sadness: ${emotion.sadness.toFixed(2)}<br>
         curiosity: ${emotion.curiosity.toFixed(2)}<br>
@@ -550,7 +643,11 @@
         <b>Glyph Legend</b><br>${legend}
         <br><b>Desire</b><br>
         Target: [${innerDesire.target.joy.toFixed(2)}, ${innerDesire.target.curiosity.toFixed(2)}, ${innerDesire.target.sadness.toFixed(2)}]<br>
-        Longing: ${innerDesire.longing.toFixed(2)}`;
+        Longing: ${innerDesire.longing.toFixed(2)}
+        <br>phrase: [${names}] ${semantic}`;
+
+      const monologue = innerMonologue();
+      hud.innerHTML += `<br><br><b>Inner monologue</b><br><i>${monologue}</i>`;        
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       requestAnimationFrame(render);
