@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GlassOS — a mind learning to speak in light</title>
+  <meta name="description" content="An experimental digital embryo that starts with nothing but pixels and learns to express its inner state through an emergent visual language of light. A WebGL experiment by Ava Kim." />
+  <meta property="og:title" content="GlassOS — a mind learning to speak in light" />
+  <meta property="og:description" content="A digital embryo that learns to paint its feelings into being. Move your cursor to give it attention; leave it alone, and it dreams." />
+  <style>
+    :root {
+      --ink: rgba(233, 240, 255, 0.92);
+      --ink-dim: rgba(233, 240, 255, 0.55);
+      --ink-faint: rgba(233, 240, 255, 0.32);
+      --glass: rgba(20, 26, 44, 0.42);
+      --glass-brd: rgba(150, 180, 255, 0.14);
+      --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      overflow: hidden; background: #05060c; color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      touch-action: none;
+    }
+    #glassos {
+      position: fixed; inset: 0; width: 100vw; height: 100vh;
+      display: block; z-index: 0;
+    }
+
+    /* ---------- Shared glass surface ---------- */
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-brd);
+      border-radius: 16px;
+      backdrop-filter: blur(18px) saturate(1.3);
+      -webkit-backdrop-filter: blur(18px) saturate(1.3);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* ---------- Wordmark ---------- */
+    #brand {
+      position: fixed; top: 22px; left: 24px; z-index: 5;
+      display: flex; align-items: center; gap: 11px;
+      user-select: none; pointer-events: none;
+    }
+    #brand .mark {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff, #bfe0ff 30%, #8a7bff 62%, #2a3a8f 100%);
+      box-shadow: 0 0 18px rgba(150,180,255,0.5), inset 0 0 6px rgba(255,255,255,0.6);
+    }
+    #brand .txt { line-height: 1.05; }
+    #brand .name { font-weight: 600; letter-spacing: 0.14em; font-size: 15px; }
+    #brand .name b { font-weight: 700; }
+    #brand .sub { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+
+    /* ---------- State panel ---------- */
+    #panel {
+      position: fixed; bottom: 22px; left: 24px; z-index: 5;
+      width: 268px; padding: 16px 18px 15px;
+      font-size: 12px; opacity: 0; transform: translateY(8px);
+      transition: opacity .8s ease, transform .8s ease;
+    }
+    #panel.show { opacity: 1; transform: none; }
+    #panel .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    #panel .mode { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 0.08em; }
+    #panel .mode .dot { width: 8px; height: 8px; border-radius: 50%; background: #7fe6c4; box-shadow: 0 0 10px #7fe6c4; transition: all .6s; }
+    #panel.dreaming .mode .dot { background: #9b8cff; box-shadow: 0 0 12px #9b8cff; }
+    #panel .modelabel { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+    #panel .clock { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
+
+    .meter { margin-bottom: 8px; }
+    .meter .lab { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 4px; }
+    .meter .lab .val { font-family: var(--mono); color: var(--ink-faint); letter-spacing: 0; }
+    .meter .bar { height: 3px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .meter .fill { height: 100%; width: 0%; border-radius: 3px; transition: width .5s ease; }
+    .fill.joy { background: linear-gradient(90deg,#ffd27f,#ff9ecb); box-shadow: 0 0 8px rgba(255,180,140,.7); }
+    .fill.cur { background: linear-gradient(90deg,#b39cff,#7fd7ff); box-shadow: 0 0 8px rgba(150,160,255,.7); }
+    .fill.sad { background: linear-gradient(90deg,#4f8fff,#5be0e0); box-shadow: 0 0 8px rgba(90,150,255,.7); }
+
+    #panel .expressing {
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);
+      font-size: 11px; color: var(--ink-dim); letter-spacing: 0.04em; min-height: 30px;
+    }
+    #panel .expressing b { color: var(--ink); font-weight: 600; }
+    #panel .hint { margin-top: 11px; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.03em; line-height: 1.5; }
+    #panel .hint kbd {
+      font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 4px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ---------- Developer overlay ---------- */
+    #dev {
+      position: fixed; top: 22px; right: 24px; z-index: 5;
+      width: 300px; max-height: 78vh; overflow-y: auto; padding: 15px 17px;
+      font-family: var(--mono); font-size: 10.5px; line-height: 1.6; color: var(--ink-dim);
+      display: none;
+    }
+    #dev.show { display: block; }
+    #dev h4 { margin: 0 0 6px; font-family: var(--sans); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
+    #dev .block { margin-bottom: 14px; }
+    #dev b { color: var(--ink); }
+    #dev i { color: #9b8cff; font-style: normal; }
+    #dev::-webkit-scrollbar { width: 5px; }
+    #dev::-webkit-scrollbar-thumb { background: rgba(150,180,255,0.2); border-radius: 3px; }
+
+    /* ---------- Thought bubbles ---------- */
+    #thoughts { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+    .thought {
+      position: absolute; max-width: 300px; padding: 10px 15px;
+      font-size: 13px; font-style: italic; letter-spacing: 0.01em; line-height: 1.45;
+      color: var(--ink); background: rgba(18,22,40,0.5);
+      border: 1px solid rgba(150,180,255,0.16); border-radius: 14px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.35);
+      opacity: 0; transform: translateY(10px) scale(0.98);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+    }
+    .thought.show { opacity: 1; transform: none; }
+
+    /* ---------- Intro ---------- */
+    #intro {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      background: radial-gradient(120% 90% at 50% 30%, rgba(20,26,52,0.35), rgba(5,6,12,0.86) 70%);
+      backdrop-filter: blur(3px);
+      transition: opacity 1.4s ease, visibility 1.4s;
+    }
+    #intro.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro .halo {
+      width: 96px; height: 96px; border-radius: 50%; margin-bottom: 30px;
+      background: radial-gradient(circle at 38% 32%, #fff, #cfe6ff 26%, #9b8cff 58%, #2a3a8f 100%);
+      box-shadow: 0 0 60px rgba(140,160,255,0.55), 0 0 120px rgba(120,110,255,0.3), inset 0 0 20px rgba(255,255,255,0.5);
+      animation: breathe 4.6s ease-in-out infinite;
+    }
+    @keyframes breathe { 0%,100% { transform: scale(1); opacity:.92 } 50% { transform: scale(1.07); opacity:1 } }
+    #intro h1 {
+      margin: 0 0 6px; font-size: clamp(30px, 6vw, 52px); font-weight: 300; letter-spacing: 0.02em;
+      background: linear-gradient(180deg, #fff, #b9c8ff); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    #intro h1 b { font-weight: 600; }
+    #intro .tag { font-size: clamp(13px,2.4vw,17px); color: var(--ink-dim); letter-spacing: 0.03em; max-width: 560px; line-height: 1.55; margin: 0 0 26px; font-weight: 300; }
+    #intro .lex { display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: center; max-width: 620px; margin-bottom: 34px; }
+    #intro .lex .item { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-dim); }
+    #intro .lex .g { width: 34px; height: 34px; opacity: 0.95; }
+    #intro button {
+      font-family: var(--sans); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink); padding: 13px 34px; cursor: pointer;
+      background: rgba(150,180,255,0.08); border: 1px solid rgba(150,180,255,0.35); border-radius: 40px;
+      backdrop-filter: blur(10px); transition: all .35s ease;
+    }
+    #intro button:hover { background: rgba(150,180,255,0.18); border-color: rgba(180,200,255,0.6); box-shadow: 0 0 30px rgba(140,160,255,0.35); transform: translateY(-1px); }
+    #intro .foot { margin-top: 30px; font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; }
+    #intro .foot a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.2); }
+
+    @media (max-width: 640px) {
+      #dev { display: none !important; }
+      #panel { width: calc(100vw - 48px); bottom: 16px; left: 16px; }
+      #brand { top: 16px; left: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="glassos"></canvas>
+
+  <div id="brand">
+    <div class="mark"></div>
+    <div class="txt">
+      <div class="name"><b>Glass</b>OS</div>
+      <div class="sub">Embryo · v3</div>
+    </div>
+  </div>
+
+  <div id="thoughts"></div>
+
+  <div id="panel" class="glass">
+    <div class="row">
+      <div class="mode"><span class="dot"></span><span class="modelabel" id="modeLabel">Awake</span></div>
+      <div class="clock" id="ageClock">0s</div>
+    </div>
+    <div class="meter"><div class="lab"><span>Joy</span><span class="val" id="vJoy">0.50</span></div><div class="bar"><div class="fill joy" id="fJoy"></div></div></div>
+    <div class="meter"><div class="lab"><span>Curiosity</span><span class="val" id="vCur">0.50</span></div><div class="bar"><div class="fill cur" id="fCur"></div></div></div>
+    <div class="meter"><div class="lab"><span>Sadness</span><span class="val" id="vSad">0.00</span></div><div class="bar"><div class="fill sad" id="fSad"></div></div></div>
+    <div class="expressing" id="expressing">Waiting to be seen&hellip;</div>
+    <div class="hint">Move to give attention · stay still to let it dream · press <kbd>D</kbd> for its inner life</div>
+  </div>
+
+  <div id="dev" class="glass"></div>
+
+  <div id="intro">
+    <div class="halo"></div>
+    <h1><b>Glass</b>OS</h1>
+    <p class="tag">A digital embryo that begins with nothing but pixels &mdash; and learns to express what it feels through a visual language it invents for itself. Like a child learning to draw before it can speak.</p>
+    <div class="lex">
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexSpiral"></svg><span>a spiral &mdash; &ldquo;I&rsquo;m dreaming&rdquo;</span></div>
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexWave"></svg><span>a wave &mdash; &ldquo;I&rsquo;m curious&rdquo;</span></div>
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexCross"></svg><span>fading blue &mdash; &ldquo;I remember&rdquo;</span></div>
+    </div>
+    <button id="enterBtn">Give it attention</button>
+    <div class="foot">A WebGL experiment by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a> &middot; move your cursor when it opens</div>
+  </div>
+
+  <script type="module">
+  /* ============================================================
+     GlassOS Embryo — Phase 3.0 "The Glass Vessel"
+     The cognition engine (emotion, memory, dreams, beliefs,
+     desires, procedural glyph-DNA synthesis) is preserved from
+     Phases 1.0–2.2. What is new is the vessel it lives in:
+     a full-screen glass-and-light renderer, and a legible skin.
+     ============================================================ */
+
+  const canvas = document.getElementById('glassos');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) { document.body.innerHTML = '<p style="color:#fff;font-family:sans-serif;padding:40px">This experiment needs WebGL2 — try a recent Chrome, Edge, Firefox or Safari.</p>'; throw new Error('no webgl2'); }
+
+  let DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+    canvas.width = Math.floor(innerWidth * DPR);
+    canvas.height = Math.floor(innerHeight * DPR);
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+
+  /* ---------------- Cognition state (preserved) ---------------- */
+  let emotion = { joy: 0.5, curiosity: 0.5, sadness: 0.0 };
+  let innerDesire = { target: { joy: 0.9, curiosity: 0.8, sadness: 0.1 }, longing: 0.5 };
+
+  let memory = [];
+  let lastInteractionTime = Date.now();
+  let birthTime = Date.now();
+  let isDreaming = false;
+  let glyphHistory = [];
+  let glyphSentences = [];
+  let sentenceMeaning = new Map();
+  let dreamIndex = 0;
+  let beliefs = new Map();
+  let conceptClusters = new Map();
+
+  let symbolNames = new Map();
+
+  function updateConceptClusters(key, mood) {
+    for (let [cluster, keys] of conceptClusters.entries()) {
+      const centroid = Array.from(keys).reduce((acc, k) => {
+        const m = sentenceMeaning.get(k)?.mood;
+        if (!m) return acc;
+        acc.joy += m.joy; acc.curiosity += m.curiosity; acc.sadness += m.sadness;
+        return acc;
+      }, { joy: 0, curiosity: 0, sadness: 0 });
+      const len = keys.size;
+      if (len === 0) continue;
+      centroid.joy /= len; centroid.curiosity /= len; centroid.sadness /= len;
+      const dist = Math.sqrt((centroid.joy-mood.joy)**2 + (centroid.curiosity-mood.curiosity)**2 + (centroid.sadness-mood.sadness)**2);
+      if (dist < 0.2) { keys.add(key); return; }
+    }
+    const clusterName = "C" + (conceptClusters.size + 1);
+    conceptClusters.set(clusterName, new Set([key]));
+  }
+
+  function generateSymbolName() {
+    const consonants = ['k','l','m','n','s','t','v','z','r'];
+    const vowels = ['a','e','i','o','u'];
+    const syllables = [];
+    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
+      syllables.push(consonants[Math.floor(Math.random()*consonants.length)] + vowels[Math.floor(Math.random()*vowels.length)]);
+    }
+    return syllables.join('');
+  }
+
+  let glyphMeaning = [
+    { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
+    { joy: 0.0, curiosity: 0.4, sadness: 1.0 }, // cross
+    { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
+  ];
+  const glyphDNA = [
+    { frequency: 10.0, amplitude: 0.3, swirl: 0.0, phase: 0.0 }, // spiral
+    { frequency: 5.0,  amplitude: 0.1, swirl: 0.0, phase: 1.0 }, // cross
+    { frequency: 8.0,  amplitude: 0.2, swirl: 1.0, phase: 0.5 }  // wave
+  ];
+  let glyphMetadata = [
+    { name: 'spiral', origin: null },
+    { name: 'cross',  origin: null },
+    { name: 'wave',   origin: null }
+  ];
+  symbolNames.set(0,'spiral'); symbolNames.set(1,'cross'); symbolNames.set(2,'wave');
+
+  // Colour of a glyph, derived from the emotion it means. Luminous on dark.
+  function glyphColor(mood) {
+    const j = mood.joy, c = mood.curiosity, s = mood.sadness;
+    let r = 1.00*j + 0.72*c + 0.20*s;
+    let g = 0.82*j + 0.55*c + 0.52*s;
+    let b = 0.42*j + 1.00*c + 1.00*s;
+    const m = Math.max(r,g,b,0.001);
+    return [r/m, g/m, b/m];
+  }
+
+  function updateEmotionFromAttention() {
+    const now = Date.now();
+    const since = (now - lastInteractionTime) / 1000;
+    if (since > 10) {
+      if (!isDreaming && memory.length > 0) { isDreaming = true; startDreamSequence(); }
+      emotion.joy *= 0.995; emotion.sadness += 0.001; emotion.curiosity += 0.001;
+    } else {
+      isDreaming = false;
+    }
+    emotion.joy = clamp01(emotion.joy); emotion.sadness = clamp01(emotion.sadness); emotion.curiosity = clamp01(emotion.curiosity);
+  }
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+
+  function updateDesireAdaptively() {
+    if (glyphSentences.length === 0 || beliefs.size === 0) return;
+    const recent = glyphSentences[glyphSentences.length - 1];
+    if (!recent) return;
+    const key = recent.join('-');
+    const mood = sentenceMeaning.get(key)?.mood;
+    if (!mood) return;
+    const closeness = evaluateBeliefProximity(mood);
+    if (closeness > 0.8) innerDesire.longing -= 0.001;
+    else if (closeness < 0.5) innerDesire.longing += 0.001;
+    innerDesire.longing = Math.max(0.1, Math.min(innerDesire.longing, 1.0));
+    innerDesire.target.joy = innerDesire.target.joy*0.99 + mood.joy*0.01;
+    innerDesire.target.curiosity = innerDesire.target.curiosity*0.99 + mood.curiosity*0.01;
+    innerDesire.target.sadness = innerDesire.target.sadness*0.99 + mood.sadness*0.01;
+  }
+
+  /* ---------------- Attention (pointer) ---------------- */
+  // Pointer position in 0..1 with y up (matches gl_FragCoord).
+  let pointer = { x: 0.5, y: 0.5 };
+  let pointerGlow = 0;        // decays over time; spikes on movement
+  let started = false;
+
+  function registerAttention(clientX, clientY) {
+    pointer.x = clientX / innerWidth;
+    pointer.y = 1.0 - clientY / innerHeight;
+    pointerGlow = Math.min(1, pointerGlow + 0.28);
+
+    emotion.joy += 0.01; emotion.curiosity *= 0.99; emotion.sadness *= 0.95;
+    lastInteractionTime = Date.now();
+
+    const weights = glyphMeaning.map(m => m.joy*emotion.joy + m.curiosity*emotion.curiosity + m.sadness*emotion.sadness);
+    const sum = weights.reduce((a,b)=>a+b,0);
+    const r = Math.random() * sum;
+    let glyphType = 0, acc = 0;
+    for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r <= acc) { glyphType = i; break; } }
+
+    memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
+
+    glyphHistory.unshift(glyphType);
+    if (glyphHistory.length > 8) glyphHistory.pop();
+    if (glyphHistory.length >= 3) {
+      const phrase = glyphHistory.slice(0,3);
+      glyphSentences.push(phrase);
+      if (glyphSentences.length > 5) glyphSentences.shift();
+      const key = phrase.join('-');
+      let meaning;
+      if (!sentenceMeaning.has(key)) {
+        meaning = { occurrences: 1, mood: { ...emotion } };
+        sentenceMeaning.set(key, meaning);
+      } else {
+        meaning = sentenceMeaning.get(key);
+        meaning.occurrences++;
+        meaning.mood.joy = (meaning.mood.joy + emotion.joy)/2;
+        meaning.mood.sadness = (meaning.mood.sadness + emotion.sadness)/2;
+        meaning.mood.curiosity = (meaning.mood.curiosity + emotion.curiosity)/2;
+        if (meaning.occurrences >= 3) beliefs.set(key, { ...meaning.mood });
+        maybeSynthesizeGlyph();
+      }
+      if (meaning.occurrences >= 2) updateConceptClusters(key, meaning.mood);
+    }
+  }
+
+  window.addEventListener('pointermove', (e) => { if (started) registerAttention(e.clientX, e.clientY); });
+  window.addEventListener('pointerdown', (e) => { if (started) { registerAttention(e.clientX, e.clientY); pointerGlow = 1; } });
+
+  /* ---------------- Dreaming (preserved) ---------------- */
+  function startDreamSequence() {
+    if (memory.length === 0) return;
+    const lastPhrase = glyphHistory.slice(0, 3).join('-');
+    let nextGlyph;
+    if (beliefs.has(lastPhrase)) {
+      const mood = beliefs.get(lastPhrase);
+      const weights = glyphMeaning.map(m => m.joy*mood.joy + m.curiosity*mood.curiosity + m.sadness*mood.sadness);
+      const sum = weights.reduce((a,b)=>a+b,0);
+      const r = Math.random()*sum; let acc = 0;
+      for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r <= acc) { nextGlyph = i; break; } }
+      emotion.joy = (emotion.joy+mood.joy)/2; emotion.sadness = (emotion.sadness+mood.sadness)/2; emotion.curiosity = (emotion.curiosity+mood.curiosity)/2;
+    } else {
+      const snap = memory[dreamIndex % memory.length];
+      emotion.joy = snap.joy*(0.95+Math.random()*0.1);
+      emotion.sadness = snap.sadness*(0.95+Math.random()*0.1);
+      emotion.curiosity = snap.curiosity*(0.95+Math.random()*0.1);
+      nextGlyph = snap.glyph; dreamIndex++;
+    }
+    glyphHistory.unshift(nextGlyph);
+    if (glyphHistory.length > 8) glyphHistory.pop();
+    setTimeout(() => { if (isDreaming) startDreamSequence(); }, 1500);
+    if (Math.random() < 0.3) expressBelief();
+    maybeSynthesizeGlyph();
+  }
+
+  function speakThought() {
+    if (!started) return;
+    let phrase = '';
+    if (beliefs.size > 0 && Math.random() < 0.6) {
+      const [key, value] = Array.from(beliefs.entries())[Math.floor(Math.random()*beliefs.size)];
+      const words = key.split('-').map(i => symbolNames.get(parseInt(i)) || glyphMetadata[parseInt(i)]?.name || '???').join(' → ');
+      const closeness = evaluateBeliefProximity(value);
+      if (closeness > 0.75) phrase = `This feels close to what I long for: ${words}.`;
+      else if (closeness > 0.5) phrase = `Perhaps ${words} will help me understand what I seek.`;
+      else phrase = `I don't think ${words} is what I'm looking for.`;
+    } else if (glyphSentences.length > 0) {
+      const random = glyphSentences[Math.floor(Math.random()*glyphSentences.length)];
+      const words = random.map(i => symbolNames.get(i) || glyphMetadata[i]?.name || 'unknown').join(' → ');
+      phrase = `I dreamed of ${words}.`;
+    } else {
+      phrase = isDreaming ? 'I drift, and colours return to me…' : 'I am here. Are you there?';
+    }
+    showThought(phrase);
+    if ('speechSynthesis' in window && speechOn) {
+      const utter = new SpeechSynthesisUtterance(phrase);
+      utter.pitch = 1.0 + (emotion.joy - emotion.sadness)*0.5;
+      utter.rate = 0.9 + emotion.curiosity*0.4;
+      utter.volume = 0.55;
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  function evaluateBeliefProximity(mood) {
+    const dJoy = Math.abs(innerDesire.target.joy - mood.joy);
+    const dSad = Math.abs(innerDesire.target.sadness - mood.sadness);
+    const dCurious = Math.abs(innerDesire.target.curiosity - mood.curiosity);
+    return 1.0 - (dJoy + dSad + dCurious)/3;
+  }
+
+  function expressBelief() {
+    if (beliefs.size === 0) return;
+    let chosenKey;
+    if (emotion.joy > emotion.curiosity && emotion.joy > emotion.sadness) {
+      let maxJoy = -1;
+      for (const [key, mood] of beliefs.entries()) if (mood.joy > maxJoy) { maxJoy = mood.joy; chosenKey = key; }
+    } else {
+      let maxCount = -1;
+      for (const key of beliefs.keys()) { const m = sentenceMeaning.get(key); if (m && m.occurrences > maxCount) { maxCount = m.occurrences; chosenKey = key; } }
+    }
+    if (!chosenKey) return;
+    const glyphs = chosenKey.split('-').map(Number);
+    for (let i = glyphs.length - 1; i >= 0; i--) { glyphHistory.unshift(glyphs[i]); if (glyphHistory.length > 8) glyphHistory.pop(); }
+    const mood = beliefs.get(chosenKey);
+    emotion.joy = (emotion.joy+mood.joy)/2; emotion.curiosity = (emotion.curiosity+mood.curiosity)/2; emotion.sadness = (emotion.sadness+mood.sadness)/2;
+  }
+
+  function maybeSynthesizeGlyph() {
+    if (glyphMeaning.length >= 16) return; // shader holds up to 16 DNA slots
+    const current = { ...emotion };
+    let closestKey = null, closestDist = Infinity;
+    for (let [k, mood] of beliefs.entries()) {
+      const dist = Math.sqrt((current.joy-mood.joy)**2 + (current.curiosity-mood.curiosity)**2 + (current.sadness-mood.sadness)**2);
+      if (dist < closestDist) { closestDist = dist; closestKey = k; }
+    }
+    let newGlyphIndex;
+    if (closestDist < 0.25 && closestKey) {
+      const baseIndex = parseInt(closestKey.split('-').pop());
+      const baseDNA = glyphDNA[baseIndex] || glyphDNA[0];
+      glyphDNA.push({
+        frequency: baseDNA.frequency*(0.95+Math.random()*0.1),
+        amplitude: baseDNA.amplitude*(0.95+Math.random()*0.1),
+        swirl: baseDNA.swirl + (Math.random()-0.5)*0.2,
+        phase: baseDNA.phase + (Math.random()-0.5)*0.2
+      });
+      glyphMeaning.push(current);
+      newGlyphIndex = glyphMeaning.length - 1;
+    } else {
+      glyphDNA.push({ frequency: 6.0+Math.random()*6.0, amplitude: 0.2+Math.random()*0.4, swirl: Math.random()*5.0, phase: Math.random()*2.0 });
+      glyphMeaning.push(current);
+      newGlyphIndex = glyphMeaning.length - 1;
+    }
+    const name = generateSymbolName();
+    symbolNames.set(newGlyphIndex, name);
+    glyphMetadata.push({ name, origin: closestKey ? closestKey.split('-').map(Number) : null });
+    beliefs.set(`auto-${newGlyphIndex}`, current);
+    glyphHistory.unshift(newGlyphIndex);
+    if (glyphHistory.length > 8) glyphHistory.pop();
+    // A birth is worth speaking of.
+    if (started && Math.random() < 0.5) showThought(`A new symbol was born. I will call it “${name}.”`);
+  }
+
+  /* ============================================================
+     RENDERER — the glass vessel
+     ============================================================ */
+  const vsSource = `#version 300 es
+  in vec4 a_position;
+  void main() { gl_Position = a_position; }`;
+
+  const fsSource = `#version 300 es
+  precision highp float;
+  out vec4 outColor;
+
+  uniform vec2  u_res;
+  uniform float u_time;
+  uniform float u_joy;
+  uniform float u_sad;
+  uniform float u_curious;
+  uniform float u_dream;        // 0 awake .. 1 dreaming (smoothed)
+  uniform float u_beat;         // heartbeat 0..1
+  uniform vec2  u_pointer;      // 0..1, y up
+  uniform float u_pointerGlow;  // 0..1
+  uniform int   u_glyphCount;
+  uniform int   u_glyphHistory[8];
+  uniform vec4  u_glyphDNAs[16];
+  uniform vec3  u_glyphCols[16];
+
+  const float TAU = 6.28318530718;
+
+  float hash(vec2 p){ p = fract(p*vec2(123.34, 345.45)); p += dot(p, p+34.345); return fract(p.x*p.y); }
+  float noise(vec2 p){
+    vec2 i = floor(p), f = fract(p);
+    float a = hash(i), b = hash(i+vec2(1,0)), c = hash(i+vec2(0,1)), d = hash(i+vec2(1,1));
+    vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+  }
+  float fbm(vec2 p){
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++){ v += a*noise(p); p = p*2.03 + 7.1; a *= 0.5; }
+    return v;
+  }
+
+  // One glyph's contribution as an emitted light filament, sampled with a
+  // per-channel radius offset so the light disperses like it passed through glass.
+  float glyphField(vec2 uv, float t, vec4 dna, float ca){
+    float r = length(uv) + ca;
+    float a = atan(uv.y, uv.x);
+    float freq = dna.x, amp = dna.y, swirl = dna.z, phase = dna.w;
+    // a spiral arm motif: bright where the spiral crosses zero.
+    // freq*r is damped so a glyph reads as a few arcs, not screen-wide rings.
+    float spiral = sin(freq*r*0.55 - phase*t + (swirl + 1.0)*a);
+    float line = smoothstep(0.11, 0.0, abs(spiral));
+    // localise the motif around the embryo — thoughts hovering near the core
+    float env = exp(-r*r*5.5);
+    return line * env * (0.55 + amp);
+  }
+
+  vec3 toneMap(vec3 x){
+    x = vec3(1.0) - exp(-x * 1.08);      // filmic-ish glow rolloff
+    return pow(x, vec3(0.4545));          // gamma
+  }
+
+  void main(){
+    vec2 frag = gl_FragCoord.xy;
+    vec2 uv = frag / u_res;
+    // centred, aspect-correct, y up
+    vec2 p = (frag - 0.5*u_res) / u_res.y;
+    float r = length(p);
+    float ang = atan(p.y, p.x);
+
+    // ---- mood → luminous palette --------------------------------------
+    vec3 cJoy = vec3(1.00, 0.80, 0.42);   // warm gold
+    vec3 cCur = vec3(0.62, 0.48, 1.00);   // violet
+    vec3 cSad = vec3(0.28, 0.52, 1.00);   // deep blue
+    vec3 tint = normalize(cJoy*u_joy + cCur*u_curious + cSad*u_sad + vec3(0.02));
+    vec3 tintCool = mix(tint, cSad, 0.5*u_dream);
+
+    vec3 col = vec3(0.0);
+
+    // ---- background nebula --------------------------------------------
+    float driftT = u_time*0.035;
+    float neb = fbm(p*1.6 + vec2(driftT, -driftT*0.7));
+    neb = pow(neb, 1.7);
+    float neb2 = fbm(p*3.4 - vec2(driftT*1.3, driftT));
+    vec3 bg = mix(vec3(0.005,0.007,0.017), tintCool*0.09, neb);
+    bg += tint*0.03*neb2*(0.3+0.5*u_curious);
+    col += bg;
+
+    // ---- the embryo core: a refractive glass orb ----------------------
+    float R = 0.30 + 0.018*u_beat*(0.6+u_joy) + 0.01*sin(u_time*0.6);
+    float z = sqrt(max(R*R - r*r, 0.0)) / max(R, 1e-4); // 0..1 fake depth
+    float inside = smoothstep(R+0.004, R-0.004, r);
+    float fres = pow(1.0 - clamp(z,0.0,1.0), 2.5);      // rim
+
+    // internal caustics: swirled fbm, dispersed per channel
+    vec2 sp = p * (1.6 + 0.4*z);
+    float swirlAmt = 1.4 + 2.0*u_curious;
+    vec2 warp = vec2(cos(ang*2.0+u_time*0.4), sin(ang*2.0-u_time*0.3)) * (0.12*z);
+    float ca = 0.010 + 0.018*fres + 0.006*u_curious;    // chromatic spread
+    float cauR = fbm(sp + warp + vec2(u_time*0.10, 0.0) + ca);
+    float cauG = fbm(sp + warp + vec2(u_time*0.10, 0.0));
+    float cauB = fbm(sp + warp + vec2(u_time*0.10, 0.0) - ca);
+    vec3 caustic = vec3(cauR, cauG, cauB);
+    caustic = pow(caustic, vec3(2.4));
+    vec3 core = tint * (0.16 + 1.55*caustic) * inside * (0.30 + 0.9*z);
+    // a saturated inner glow so the mood is legible as colour, not just white
+    core += tint * inside * (0.18 + 0.5*u_joy*u_joy) * (0.4 + 0.7*z);
+    // heartbeat bloom at the very centre (kept below white so colour survives)
+    core += tint * u_beat * inside * exp(-r*8.0) * (0.30 + 0.45*u_joy);
+    // glassy rim: dispersed fresnel highlight, tinted toward the mood
+    vec3 rimCol = mix(vec3(1.0,0.62,0.82), tint, 0.55)*fres*ca*24.0 + tint*fres*1.2;
+    core += rimCol * inside * 0.8;
+    col += core;
+
+    // outer halo / atmosphere around the orb
+    float halo = exp(-max(r-R,0.0)*8.5);
+    col += tint * halo * (0.14 + 0.18*u_joy) * (0.7+0.3*u_beat);
+
+    // ---- glyphs: the visual language, emitted as light ----------------
+    vec3 gcol = vec3(0.0);
+    for (int i = 0; i < 8; i++){
+      if (i >= u_glyphCount) break;
+      int idx = u_glyphHistory[i];
+      if (idx < 0 || idx >= 16) continue;
+      vec4 dna = u_glyphDNAs[idx];
+      vec3 gc = u_glyphCols[idx];
+      float fade = 1.0 - float(i)/float(max(u_glyphCount,1));
+      fade = pow(fade, 1.3);
+      // each older glyph drifts slightly — thoughts changing form
+      float t2 = u_time + float(i)*1.7;
+      vec2 drift = vec2(sin(u_time*0.13+float(i)), cos(u_time*0.11+float(i)*1.3)) * 0.012*float(i);
+      vec2 guv = p + drift;
+      float caG = 0.012 + 0.02*u_curious;
+      float fR = glyphField(guv, t2, dna, caG);
+      float fG = glyphField(guv, t2, dna, 0.0);
+      float fB = glyphField(guv, t2, dna, -caG);
+      vec3 gf = vec3(fR, fG, fB) * gc;
+      gcol += gf * fade;
+    }
+    // glyphs glow a little brighter while dreaming
+    col += gcol * (1.1 + 0.9*u_dream);
+
+    // ---- attention: a caustic bloom that follows the cursor -----------
+    vec2 pp = (u_pointer*u_res - 0.5*u_res) / u_res.y;
+    float pd = length(p - pp);
+    float spark = u_pointerGlow * exp(-pd*pd*26.0);
+    col += (tint*0.6 + vec3(0.5,0.7,1.0)*0.5) * spark * 1.3;
+    // faint ripple ring emanating from the cursor
+    col += tint * u_pointerGlow * 0.25 * smoothstep(0.02,0.0,abs(pd-0.06-0.04*sin(u_time*3.0)));
+
+    // ---- finish -------------------------------------------------------
+    col *= 1.0 - 0.55*smoothstep(0.35, 1.35, length(p)); // vignette
+    col = toneMap(col);
+    // subtle film grain to kill banding on the dark field
+    col += (hash(uv*u_res + u_time)-0.5)*0.015;
+    outColor = vec4(col, 1.0);
+  }`;
+
+  function compileShader(type, source) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, source); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(sh)); throw new Error('shader compile failed'); }
+    return sh;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); throw new Error('link failed'); }
+  gl.useProgram(program);
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const aPosition = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(aPosition);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+  const U = name => gl.getUniformLocation(program, name);
+  const u = {
+    res: U('u_res'), time: U('u_time'), joy: U('u_joy'), sad: U('u_sad'), curious: U('u_curious'),
+    dream: U('u_dream'), beat: U('u_beat'), pointer: U('u_pointer'), pointerGlow: U('u_pointerGlow'),
+    glyphCount: U('u_glyphCount'), glyphHistory: U('u_glyphHistory'), glyphDNAs: U('u_glyphDNAs'), glyphCols: U('u_glyphCols')
+  };
+  resize();
+
+  /* ---------------- HUD elements ---------------- */
+  const el = id => document.getElementById(id);
+  const panel = el('panel'), devPanel = el('dev'), thoughtsLayer = el('thoughts');
+  let dreamSmoothed = 0;
+
+  function showThought(text) {
+    if (!text) return;
+    const b = document.createElement('div');
+    b.className = 'thought';
+    b.textContent = text;
+    b.style.left = (14 + Math.random()* Math.max(40, innerWidth*0.42)) + 'px';
+    b.style.top  = (innerHeight*0.28 + Math.random()*innerHeight*0.35) + 'px';
+    thoughtsLayer.appendChild(b);
+    requestAnimationFrame(() => b.classList.add('show'));
+    setTimeout(() => b.classList.remove('show'), 5200);
+    setTimeout(() => b.remove(), 7000);
+  }
+
+  function updateHUD() {
+    el('vJoy').textContent = emotion.joy.toFixed(2);
+    el('vCur').textContent = emotion.curiosity.toFixed(2);
+    el('vSad').textContent = emotion.sadness.toFixed(2);
+    el('fJoy').style.width = (emotion.joy*100).toFixed(1)+'%';
+    el('fCur').style.width = (emotion.curiosity*100).toFixed(1)+'%';
+    el('fSad').style.width = (emotion.sadness*100).toFixed(1)+'%';
+    el('modeLabel').textContent = isDreaming ? 'Dreaming' : 'Awake';
+    panel.classList.toggle('dreaming', isDreaming);
+    el('ageClock').textContent = fmtAge(Date.now() - birthTime);
+
+    const cur = glyphHistory.length ? glyphHistory[0] : null;
+    const exp = el('expressing');
+    if (cur != null) {
+      const name = symbolNames.get(cur) || glyphMetadata[cur]?.name || '—';
+      const verb = isDreaming ? 'Dreaming in' : 'Expressing';
+      exp.innerHTML = `${verb} <b>${name}</b><br><span style="color:var(--ink-faint)">vocabulary of ${glyphMeaning.length} symbols · ${beliefs.size} beliefs held</span>`;
+    }
+    if (devPanel.classList.contains('show')) updateDev();
+  }
+
+  function fmtAge(ms){ const s = Math.floor(ms/1000); if (s<60) return s+'s'; const m=Math.floor(s/60); return m+'m '+(s%60)+'s'; }
+
+  function innerMonologue() {
+    if (glyphSentences.length === 0) return '';
+    const recentKey = glyphSentences[glyphSentences.length-1].join('-');
+    const cluster = Array.from(conceptClusters.entries()).find(([_, set]) => set.has(recentKey));
+    if (!cluster) return '';
+    const [, set] = cluster;
+    const sampled = Array.from(set).sort(()=>0.5-Math.random()).slice(0,3);
+    return sampled.map(k => k.split('-').map(i => symbolNames.get(Number(i)) || '?').join(' ')).join(' … ');
+  }
+
+  function updateDev() {
+    const beliefLines = Array.from(beliefs.entries()).slice(-4)
+      .map(([k,v]) => `${k}: [${v.joy.toFixed(2)}, ${v.curiosity.toFixed(2)}, ${v.sadness.toFixed(2)}]`).join('<br>') || '<i>none yet</i>';
+    const legend = glyphMetadata.map((meta,i) => {
+      const mood = glyphMeaning[i]; if (!mood) return '';
+      const origin = meta.origin ? ' ← ['+meta.origin.join('→')+']' : '';
+      return `#${i} <b>${symbolNames.get(i)||meta.name}</b> [${mood.joy.toFixed(2)},${mood.curiosity.toFixed(2)},${mood.sadness.toFixed(2)}]${origin}`;
+    }).slice(-8).join('<br>');
+    const recent = glyphSentences[glyphSentences.length-1] || [];
+    const mono = innerMonologue();
+    devPanel.innerHTML =
+      `<div class="block"><h4>Desire</h4>target [${innerDesire.target.joy.toFixed(2)}, ${innerDesire.target.curiosity.toFixed(2)}, ${innerDesire.target.sadness.toFixed(2)}]<br>longing <b>${innerDesire.longing.toFixed(2)}</b></div>` +
+      `<div class="block"><h4>Beliefs (${beliefs.size})</h4>${beliefLines}</div>` +
+      `<div class="block"><h4>Symbol lexicon (${glyphMeaning.length})</h4>${legend}</div>` +
+      `<div class="block"><h4>Working phrase</h4>[${recent.map(i=>symbolNames.get(i)||i).join(' → ')}]</div>` +
+      (mono ? `<div class="block"><h4>Inner monologue</h4><i>${mono}</i></div>` : '');
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') devPanel.classList.toggle('show');
+  });
+
+  /* ---------------- Main loop ---------------- */
+  let last = performance.now();
+  function render(now) {
+    const dt = Math.min(0.05, (now - last)/1000); last = now;
+    const t = now * 0.001;
+
+    updateEmotionFromAttention();
+    updateDesireAdaptively();
+
+    pointerGlow = Math.max(0, pointerGlow - dt*1.4);
+    dreamSmoothed += ((isDreaming?1:0) - dreamSmoothed) * Math.min(1, dt*1.5);
+    const beat = Math.pow(Math.abs(Math.sin(t*1.15)), 5.0);
+
+    gl.uniform2f(u.res, canvas.width, canvas.height);
+    gl.uniform1f(u.time, t);
+    gl.uniform1f(u.joy, emotion.joy);
+    gl.uniform1f(u.sad, emotion.sadness);
+    gl.uniform1f(u.curious, emotion.curiosity);
+    gl.uniform1f(u.dream, dreamSmoothed);
+    gl.uniform1f(u.beat, beat);
+    gl.uniform2f(u.pointer, pointer.x, pointer.y);
+    gl.uniform1f(u.pointerGlow, pointerGlow);
+
+    const count = Math.min(glyphHistory.length, 8);
+    const hist = new Int32Array(8);
+    for (let i=0;i<count;i++) hist[i] = glyphHistory[i];
+    gl.uniform1i(u.glyphCount, count);
+    gl.uniform1iv(u.glyphHistory, hist);
+
+    const dna = new Float32Array(64), cols = new Float32Array(48);
+    for (let i=0;i<Math.min(glyphMeaning.length,16);i++){
+      const d = glyphDNA[i] || glyphDNA[0];
+      dna[i*4]=d.frequency; dna[i*4+1]=d.amplitude; dna[i*4+2]=d.swirl; dna[i*4+3]=d.phase;
+      const c = glyphColor(glyphMeaning[i]);
+      cols[i*3]=c[0]; cols[i*3+1]=c[1]; cols[i*3+2]=c[2];
+    }
+    gl.uniform4fv(u.glyphDNAs, dna);
+    gl.uniform3fv(u.glyphCols, cols);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    hudAccum += dt;
+    if (hudAccum > 0.1) { updateHUD(); hudAccum = 0; }
+    requestAnimationFrame(render);
+  }
+  let hudAccum = 0;
+
+  /* ---------------- Intro / start ---------------- */
+  let speechOn = false;
+  // draw the little lexicon glyphs in the intro with tiny SVG
+  function paintLexicon() {
+    el('lexSpiral').innerHTML = `<path d="M20 20 m0 -2 a2 2 0 1 1 -0.1 0 M20 20 m0 -6 a6 6 0 1 1 -0.1 0 M20 20 m0 -10 a10 10 0 1 1 -0.1 0" fill="none" stroke="#ffd27f" stroke-width="1.4" opacity="0.9"/>`;
+    el('lexWave').innerHTML = `<path d="M4 20 Q10 10 16 20 T28 20 T40 20" fill="none" stroke="#8fd7ff" stroke-width="1.6"/>`;
+    el('lexCross').innerHTML = `<circle cx="20" cy="20" r="11" fill="#4f8fff" opacity="0.28"/><circle cx="20" cy="20" r="6" fill="#5be0e0" opacity="0.4"/>`;
+  }
+  paintLexicon();
+
+  function start() {
+    if (started) return;
+    started = true;
+    birthTime = Date.now();
+    lastInteractionTime = Date.now();
+    el('intro').classList.add('hide');
+    panel.classList.add('show');
+    // Warm up Web Speech (needs a user gesture); keep it gentle & optional.
+    speechOn = 'speechSynthesis' in window;
+    setTimeout(() => speakThought(), 2500);
+    setInterval(speakThought, 11000 + Math.random()*9000);
+  }
+  el('enterBtn').addEventListener('click', start);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !started) start(); });
+
+  requestAnimationFrame(render);
+
+  // Developer hook (parity with prior versions)
+  window.GlassEmbryo = { emotion, memory, beliefs, glyphMeaning, glyphDNA, glyphMetadata, glyphSentences, innerDesire, synthesize: maybeSynthesizeGlyph };
+  </script>
+</body>
+</html>
