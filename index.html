@@ -137,6 +137,15 @@
       border-radius: 20px; padding: 5px 14px; cursor: pointer;
     }
     .win .btnrow button:hover { color: var(--ink); border-color: rgba(180,200,255,0.5); }
+    .win .field { margin-bottom: 10px; }
+    .win .field label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+    .win .field input {
+      width: 100%; background: rgba(150,180,255,0.06); border: 1px solid rgba(150,180,255,0.2);
+      border-radius: 8px; padding: 7px 10px; color: var(--ink); font-family: var(--mono); font-size: 11px; outline: none;
+    }
+    .win .field input:focus { border-color: rgba(180,200,255,0.5); }
+    .win .spark { display: flex; align-items: flex-end; gap: 2px; height: 36px; margin: 6px 0; }
+    .win .spark i { flex: 1; background: linear-gradient(180deg,#b39cff,#5b8cff); border-radius: 2px 2px 0 0; min-height: 2px; }
 
     /* ---------- Command palette ---------- */
     #palette {
@@ -1243,18 +1252,362 @@
       }
     },
     help: {
-      title: 'Help', alias: ['?', 'about'], desc: 'what this desk can do', w: 340, h: 320, single: true,
+      title: 'Help', alias: ['?', 'about'], desc: 'what this desk can do', w: 340, h: 340, single: true,
       mount(body) {
-        const rows = Object.entries(REGISTRY).map(([k, d]) =>
+        const rows = Object.entries(REGISTRY).filter(([, d]) => !d.hidden).map(([k, d]) =>
           `<div style="margin-bottom:6px"><b style="font-family:var(--mono)">${k}</b> <span class="dim">— ${d.desc}</span></div>`).join('');
         body.innerHTML =
-          `<div class="block"><h4>Conjure</h4><span class="dim"><b>⌘K</b> / <b>Ctrl K</b> / <b>/</b> opens the palette. Type an intent; Enter realizes it as glass.</span></div>` +
+          `<div class="block"><h4>Conjure</h4><span class="dim"><b>⌘K</b> / <b>Ctrl K</b> / <b>/</b> opens the palette. Type an intent; Enter realizes it as glass. Type <i>anything else</i> — with an API key connected (see <b>brain</b>), a frontier model generates a bespoke surface for it.</span></div>` +
           `<div class="block"><h4>Surfaces</h4>${rows}</div>` +
           `<div class="block"><h4>The creature</h4><span class="dim">Linger near a sign to feed it; click it to feast it. Stop for 12s and it dreams — the glass frosts over. <b>D</b> toggles vitals. It remembers you.</span></div>` +
           `<div class="dim"><a href="https://github.com/in-c0/glassos-webgl" target="_blank" rel="noopener">source</a> · by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a></div>`;
       }
     },
+    brain: {
+      title: 'Brain', alias: ['key', 'api', 'settings'], desc: 'connect an Anthropic API key — then conjure anything', w: 320, h: 264, single: true,
+      mount(body) {
+        const cfg = brainCfg();
+        body.innerHTML =
+          `<div class="dim" style="margin-bottom:10px">Freeform conjuring needs a mind behind it. Your key stays in this browser (localStorage) and is sent only to api.anthropic.com.</div>` +
+          `<div class="field"><label>Anthropic API key</label><input id="brainKey" type="password" placeholder="sk-ant-…" autocomplete="off" /></div>` +
+          `<div class="field"><label>Model</label><input id="brainModel" type="text" autocomplete="off" /></div>` +
+          `<div class="btnrow"><button id="brainSave">save</button><button id="brainClear">clear</button></div>` +
+          `<div class="dim" id="brainStatus" style="margin-top:9px"></div>`;
+        const keyEl = body.querySelector('#brainKey'), modelEl = body.querySelector('#brainModel'), status = body.querySelector('#brainStatus');
+        keyEl.value = cfg.key || '';
+        modelEl.value = cfg.model || 'claude-opus-4-8';
+        status.textContent = cfg.key ? 'connected — the palette can conjure anything.' : 'not connected.';
+        body.querySelector('#brainSave').onclick = () => {
+          try { localStorage.setItem(BRAIN_KEY, JSON.stringify({ key: keyEl.value.trim(), model: modelEl.value.trim() || 'claude-opus-4-8' })); } catch (e) {}
+          status.textContent = keyEl.value.trim() ? 'connected — the palette can conjure anything.' : 'not connected.';
+          if (keyEl.value.trim()) queueEvent('The brain is connected.', true);
+        };
+        body.querySelector('#brainClear').onclick = () => {
+          try { localStorage.removeItem(BRAIN_KEY); } catch (e) {}
+          keyEl.value = ''; status.textContent = 'not connected.';
+        };
+      }
+    },
+    custom: {
+      title: 'Conjured', desc: 'a surface conjured by the brain', w: 300, h: 240, hidden: true,
+      mount(body, props) {
+        if (props.spec) return;            // openPanel post-step renders it
+        if (!props.intent) { body.innerHTML = '<div class="dim">nothing to conjure — use the palette.</div>'; return; }
+        body.innerHTML = '<div class="dim">conjuring…</div>';
+      }
+    },
   };
+
+  /* ============================================================
+     THE BRAIN SLOT — freeform conjuring via a frontier model
+
+     The user's wish goes to the Anthropic API (their own key,
+     stored locally, sent nowhere else); the model emits a GlassDSL
+     spec; a strict whitelist validator sanitizes it; a DOM renderer
+     realizes it. Specs persist with the layout, so conjured
+     surfaces survive reloads without re-calling the API. Every
+     (intent, spec) pair is logged locally — the seed dataset for
+     the future on-device cerebellum.
+     ============================================================ */
+  const BRAIN_KEY = 'glassos-brain-v1';
+  const GENLOG_KEY = 'glassos-genlog-v1';
+  const LIVE_HOSTS = new Set([
+    'api.open-meteo.com', 'geocoding-api.open-meteo.com', 'api.github.com',
+    'hn.algolia.com', 'api.coingecko.com', 'api.frankfurter.app', 'worldtimeapi.org',
+  ]);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function brainCfg() {
+    try { return JSON.parse(localStorage.getItem(BRAIN_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function genlog(intent, ok, spec) {
+    try {
+      const arr = JSON.parse(localStorage.getItem(GENLOG_KEY) || '[]');
+      arr.push({ ts: Date.now(), intent, ok, spec: ok ? spec : undefined });
+      while (arr.length > 50) arr.shift();
+      localStorage.setItem(GENLOG_KEY, JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  /* ---- GlassDSL v0: validate (whitelist-copy, never trust) ---- */
+  const SPEC_STYLES = new Set(['big', 'md', 'dim', 'label']);
+  function safeUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' ? x.href : null; } catch (e) { return null; } }
+  function liveUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' && LIVE_HOSTS.has(x.hostname) ? x.href : null; } catch (e) { return null; } }
+  function cleanNodes(list, depth, budget) {
+    return (Array.isArray(list) ? list : []).map(n => cleanNode(n, depth, budget)).filter(Boolean);
+  }
+  function cleanNode(n, depth, budget) {
+    if (!n || typeof n !== 'object' || depth > 6 || ++budget.n > 80) return null;
+    const s = v => typeof v === 'string' ? v.slice(0, 400) : '';
+    switch (n.t) {
+      case 'text': return { t: 'text', v: s(n.v), style: SPEC_STYLES.has(n.style) ? n.style : 'md', mono: !!n.mono };
+      case 'row': case 'col': return { t: n.t, gap: clamp(+n.gap || 8, 0, 24), children: cleanNodes(n.children, depth + 1, budget) };
+      case 'list': return {
+        t: 'list',
+        items: (Array.isArray(n.items) ? n.items : []).slice(0, 20)
+          .map(it => typeof it === 'string' ? { t: 'text', v: s(it), style: 'md' } : cleanNode(it, depth + 1, budget))
+          .filter(Boolean)
+      };
+      case 'stat': return { t: 'stat', label: s(n.label), value: s(n.value), hint: s(n.hint) };
+      case 'meter': return { t: 'meter', label: s(n.label), value: clamp(+n.value || 0, 0, 1) };
+      case 'divider': return { t: 'divider' };
+      case 'spark': return { t: 'spark', values: (Array.isArray(n.values) ? n.values : []).slice(0, 24).map(v => +v || 0), label: s(n.label) };
+      case 'link': { const u = safeUrl(n.url); return u ? { t: 'link', label: s(n.label) || u, url: u } : null; }
+      case 'button': {
+        const a = n.action || {};
+        if (a.kind === 'link') { const u = safeUrl(a.url); return u ? { t: 'button', label: s(n.label) || 'open', action: { kind: 'link', url: u } } : null; }
+        if (a.kind === 'conjure' && typeof a.intent === 'string') return { t: 'button', label: s(n.label) || 'conjure', action: { kind: 'conjure', intent: a.intent.slice(0, 200) } };
+        if (a.kind === 'close') return { t: 'button', label: s(n.label) || 'close', action: { kind: 'close' } };
+        return null;
+      }
+      case 'live': return { t: 'live', src: n.src === 'date' ? 'date' : 'clock' };
+      case 'fetchjson': {
+        const u = liveUrl(n.url);
+        return u ? { t: 'fetchjson', url: u, path: s(n.path), label: s(n.label), prefix: s(n.prefix), suffix: s(n.suffix), refresh: n.refresh ? clamp(+n.refresh || 0, 30, 3600) : 0 } : null;
+      }
+      default: return null;
+    }
+  }
+  function validateSpec(raw) {
+    if (!raw || typeof raw !== 'object') return { ok: false, error: 'not an object' };
+    const budget = { n: 0 };
+    const body = cleanNodes(raw.body, 0, budget);
+    if (!body.length) return { ok: false, error: 'empty or entirely invalid body' };
+    return {
+      ok: true,
+      spec: {
+        title: typeof raw.title === 'string' ? raw.title.slice(0, 24) : 'Conjured',
+        w: clamp(+raw.w || 300, 176, 560), h: clamp(+raw.h || 240, 96, 520),
+        body,
+      }
+    };
+  }
+
+  /* ---- GlassDSL v0: render (createElement only — no injected HTML) ---- */
+  function buildNode(node) {
+    switch (node.t) {
+      case 'text': {
+        const d = document.createElement('div');
+        if (node.style === 'big') d.className = 'big';
+        else if (node.style === 'dim') d.className = 'dim';
+        else if (node.style === 'label') { d.className = 'dim'; d.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; }
+        if (node.mono) d.style.fontFamily = 'var(--mono)';
+        d.textContent = node.v;
+        return d;
+      }
+      case 'row': case 'col': {
+        const d = document.createElement('div');
+        d.style.cssText = `display:flex;flex-direction:${node.t === 'row' ? 'row' : 'column'};gap:${node.gap}px;align-items:${node.t === 'row' ? 'baseline' : 'stretch'};flex-wrap:wrap`;
+        node.children.forEach(c => d.appendChild(buildNode(c)));
+        return d;
+      }
+      case 'list': {
+        const d = document.createElement('div');
+        node.items.forEach(it => { const r = document.createElement('div'); r.style.marginBottom = '6px'; r.appendChild(buildNode(it)); d.appendChild(r); });
+        return d;
+      }
+      case 'stat': {
+        const d = document.createElement('div');
+        const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; l.textContent = node.label;
+        const v = document.createElement('div'); v.className = 'big'; v.textContent = node.value;
+        d.append(l, v);
+        if (node.hint) { const h = document.createElement('div'); h.className = 'dim'; h.textContent = node.hint; d.appendChild(h); }
+        return d;
+      }
+      case 'meter': {
+        const d = document.createElement('div'); d.className = 'meter'; d.style.marginTop = '4px';
+        const lab = document.createElement('div'); lab.className = 'lab';
+        const s1 = document.createElement('span'); s1.textContent = node.label;
+        const s2 = document.createElement('span'); s2.className = 'val'; s2.textContent = Math.round(node.value * 100) + '%';
+        lab.append(s1, s2);
+        const bar = document.createElement('div'); bar.className = 'bar';
+        const fill = document.createElement('div'); fill.className = 'fill vit'; fill.style.width = (node.value * 100) + '%';
+        bar.appendChild(fill); d.append(lab, bar);
+        return d;
+      }
+      case 'divider': {
+        const d = document.createElement('div');
+        d.style.cssText = 'border-top:1px solid rgba(255,255,255,0.07);margin:10px 0';
+        return d;
+      }
+      case 'spark': {
+        const d = document.createElement('div');
+        if (node.label) { const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.12em;text-transform:uppercase'; l.textContent = node.label; d.appendChild(l); }
+        const sp = document.createElement('div'); sp.className = 'spark';
+        const max = Math.max(...node.values.map(Math.abs), 1e-9);
+        node.values.forEach(v => { const i = document.createElement('i'); i.style.height = Math.max(4, Math.abs(v) / max * 100) + '%'; sp.appendChild(i); });
+        d.appendChild(sp);
+        return d;
+      }
+      case 'link': {
+        const a = document.createElement('a');
+        a.href = node.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = node.label;
+        return a;
+      }
+      case 'button': {
+        const row = document.createElement('div'); row.className = 'btnrow'; row.style.marginTop = '6px';
+        const b = document.createElement('button'); b.textContent = node.label;
+        b.onclick = (e) => {
+          if (node.action.kind === 'link') window.open(node.action.url, '_blank', 'noopener');
+          else if (node.action.kind === 'conjure') conjureIntent(node.action.intent);
+          else if (node.action.kind === 'close') {
+            const el = e.target.closest('.win');
+            const w = wins.find(x => x.el === el);
+            if (w) closePanel(w);
+          }
+        };
+        row.appendChild(b);
+        return row;
+      }
+      case 'live': {
+        const sp = document.createElement('div'); sp.className = 'big';
+        const paint = () => {
+          const d = new Date();
+          sp.textContent = node.src === 'date'
+            ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+            : `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}:${fmt2(d.getSeconds())}`;
+        };
+        paint();
+        const id = setInterval(() => { if (!sp.isConnected) { clearInterval(id); return; } paint(); }, 1000);
+        return sp;
+      }
+      case 'fetchjson': {
+        const box = document.createElement('div');
+        if (node.label) { const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; l.textContent = node.label; box.appendChild(l); }
+        const val = document.createElement('div'); val.className = 'big'; val.textContent = '…';
+        box.appendChild(val);
+        const load = async () => {
+          try {
+            const j = await (await fetch(node.url)).json();
+            let v = j;
+            for (const k of node.path.split('.').filter(Boolean)) v = v?.[k];
+            if (v === undefined || v === null || typeof v === 'object') throw 0;
+            if (typeof v === 'number') v = Math.round(v * 100) / 100;
+            val.textContent = `${node.prefix || ''}${v}${node.suffix || ''}`;
+            val.classList.remove('dim');
+          } catch (e) { val.textContent = '—'; val.classList.add('dim'); }
+        };
+        load();
+        if (node.refresh) {
+          const id = setInterval(() => { if (!box.isConnected) { clearInterval(id); return; } load(); }, node.refresh * 1000);
+        }
+        return box;
+      }
+    }
+    return document.createElement('span');
+  }
+  function renderSpec(spec, body) {
+    body.innerHTML = '';
+    spec.body.forEach(n => {
+      const el0 = buildNode(n);
+      el0.style.marginBottom = el0.style.marginBottom || '8px';
+      body.appendChild(el0);
+    });
+  }
+
+  /* ---- the call itself ---- */
+  function buildBrainSystem() {
+    const open = wins.map(w => w.type).join(', ') || 'none';
+    const d = new Date();
+    let tz = 'UTC'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+    return `You are the brain of GlassOS, a desktop of glass and light. The user typed a wish; realize it as ONE surface by emitting a single JSON object (no markdown fences, no prose) in GlassDSL v0:
+
+{"title":"<=24 chars","w":176-560,"h":96-520,"body":[node,...]}
+
+Nodes:
+{"t":"text","v":"string","style":"big|md|dim|label","mono":true?}
+{"t":"row","gap":8,"children":[...]} | {"t":"col","gap":8,"children":[...]}
+{"t":"list","items":["string" or node,...]}
+{"t":"stat","label":"s","value":"s","hint":"s"?}
+{"t":"meter","label":"s","value":0..1}
+{"t":"divider"}
+{"t":"spark","values":[numbers,<=24],"label":"s"?}
+{"t":"button","label":"s","action":{"kind":"link","url":"https://..."}|{"kind":"conjure","intent":"s"}|{"kind":"close"}}
+{"t":"link","label":"s","url":"https://..."}
+{"t":"live","src":"clock|date"}  (self-updating)
+{"t":"fetchjson","url":"https://...","path":"a.b.0.c","label":"s"?,"prefix":"s"?,"suffix":"s"?,"refresh":30-3600?}
+
+fetchjson may ONLY use these keyless CORS-open hosts: api.open-meteo.com, geocoding-api.open-meteo.com, api.github.com, hn.algolia.com, api.coingecko.com, api.frankfurter.app, worldtimeapi.org. Examples:
+- BTC: url "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd" path "bitcoin.usd" prefix "$"
+- temp now: url "https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LON&current=temperature_2m" path "current.temperature_2m" suffix "°" (use real coordinates for the named city)
+- FX: url "https://api.frankfurter.app/latest?from=USD&to=KRW" path "rates.KRW"
+- repo stars: url "https://api.github.com/repos/OWNER/REPO" path "stargazers_count"
+Never invent other hosts. When no live source fits, compute or write the content yourself — you are intelligent; a good static surface beats a broken live one.
+
+Context: local time ${fmt2(d.getHours())}:${fmt2(d.getMinutes())}, ${d.toDateString()}, timezone ${tz}. Open surfaces: ${open}. Living background: ${world.alive.length} evolved signs, generation ${world.generation}.
+Respond with the JSON object only.`;
+  }
+
+  function extractJSON(text) {
+    try { return JSON.parse(text); } catch (e) {}
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a >= 0 && b > a) { try { return JSON.parse(text.slice(a, b + 1)); } catch (e) {} }
+    return null;
+  }
+
+  async function callBrain(intent) {
+    const cfg = brainCfg();
+    if (!cfg.key) throw new Error('no API key — open “brain” and connect one');
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': cfg.key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: cfg.model || 'claude-opus-4-8',
+        max_tokens: 4096,
+        system: buildBrainSystem(),
+        messages: [{ role: 'user', content: intent }],
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error?.message || ('the brain is unreachable (HTTP ' + res.status + ')'));
+    if (data.stop_reason === 'refusal') throw new Error('the brain declined this request');
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const spec = extractJSON(text);
+    const v = validateSpec(spec);
+    if (!v.ok) throw new Error('the brain spoke, but not in GlassDSL (' + v.error + ')');
+    return v.spec;
+  }
+
+  function applySpecToWin(w) {
+    const spec = w.props.spec;
+    if (!spec) return;
+    w.el.querySelector('.win-t span').textContent = spec.title;
+    w.w = clamp(spec.w, 176, 560); w.h = clamp(spec.h, 96, 520);
+    applyGeom(w);
+    renderSpec(spec, w.body);
+  }
+
+  async function conjureFill(w) {
+    w.body.innerHTML = '<div class="dim">conjuring…</div>';
+    try {
+      const spec = await callBrain(w.props.intent);
+      w.props.spec = spec;
+      applySpecToWin(w);
+      genlog(w.props.intent, true, spec);
+      saveShell();
+      if (!window.__conjuredOnce) { window.__conjuredOnce = true; queueEvent('Conjured. That surface was generated, not built.', true); }
+    } catch (e) {
+      genlog(w.props.intent, false);
+      w.body.innerHTML = '';
+      const d = document.createElement('div'); d.className = 'dim'; d.textContent = String(e.message || e);
+      const row = document.createElement('div'); row.className = 'btnrow';
+      const b = document.createElement('button'); b.textContent = 'retry'; b.onclick = () => conjureFill(w);
+      row.appendChild(b);
+      w.body.append(d, row);
+    }
+  }
+
+  function conjureIntent(intent) {
+    intent = String(intent || '').trim().slice(0, 500);
+    if (!intent) return;
+    const w = openPanel('custom', { intent });
+    if (w) conjureFill(w);
+  }
 
   /* ---------------- window manager ---------------- */
   function applyGeom(w) {
@@ -1297,6 +1650,7 @@
     shellEl.appendChild(root);
     const api = def.mount(body, props) || {};
     w.tick = api.tick; w.cleanup = api.cleanup;
+    if (type === 'custom' && props.spec) applySpecToWin(w); // restored conjured surface — renders offline
     root.addEventListener('pointerdown', () => focusWin(w));
     root.querySelector('.win-x').addEventListener('click', () => closePanel(w));
     const tbar = root.querySelector('.win-t');
@@ -1364,13 +1718,20 @@
     setTimeout(() => palInput.focus(), 30);
   }
   function paletteClose() { paletteEl.classList.remove('show'); palInput.blur(); }
-  function matchCmd(q) {
+  function exactCmd(q) {
     q = q.trim().toLowerCase();
     if (!q) return null;
     const sp = q.split(/\s+/), head = sp[0], arg = sp.slice(1).join(' ');
-    const keys = Object.keys(REGISTRY);
-    let k = keys.find(k => k === head || (REGISTRY[k].alias || []).includes(head));
-    if (!k) k = keys.find(k => k.startsWith(head) || (REGISTRY[k].alias || []).some(a => a.startsWith(head)));
+    const k = Object.keys(REGISTRY).find(k => k === head || (REGISTRY[k].alias || []).includes(head));
+    return k ? { k, arg } : null;
+  }
+  function matchCmd(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return null;
+    const ex = exactCmd(q);
+    if (ex) return ex;
+    const sp = q.split(/\s+/), head = sp[0], arg = sp.slice(1).join(' ');
+    const k = Object.keys(REGISTRY).find(k => k.startsWith(head) || (REGISTRY[k].alias || []).some(a => a.startsWith(head)));
     return k ? { k, arg } : null;
   }
   function argProps(k, arg) {
@@ -1380,20 +1741,39 @@
     if (k === 'timer') return { min: parseFloat(arg) || 5 };
     return {};
   }
+  // Freeform detection: an exact key/alias executes; a bare prefix executes
+  // only for single-word input. Everything else is a wish for the brain.
+  function isFreeform(q) {
+    return q.trim().split(/\s+/).length >= 2 && !exactCmd(q);
+  }
   function renderHints(q) {
     const m = matchCmd(q);
     const head = q.trim().toLowerCase().split(/\s+/)[0] || '';
-    const rows = Object.entries(REGISTRY)
+    let rows = Object.entries(REGISTRY)
+      .filter(([, d]) => !d.hidden)
       .filter(([k, d]) => !head || (m && m.k === k) || k.startsWith(head) || (d.alias || []).some(a => a.startsWith(head)))
-      .slice(0, 8)
-      .map(([k, d]) => `<div class="pal-row${m && m.k === k ? ' sel' : ''}" data-k="${k}"><b>${k}</b><span>${d.desc}</span></div>`)
+      .slice(0, 7)
+      .map(([k, d]) => `<div class="pal-row${m && m.k === k && !isFreeform(q) ? ' sel' : ''}" data-k="${k}"><b>${k}</b><span>${d.desc}</span></div>`)
       .join('');
-    palHints.innerHTML = rows || '<div class="pal-row"><span class="dim">no surface answers to that — try “help”</span></div>';
+    if (q.trim() && (isFreeform(q) || !rows)) {
+      const brainRow = brainCfg().key
+        ? `<div class="pal-row sel" data-brain="1"><b>✦</b><span>conjure “${esc(q.trim().slice(0, 60))}” with the brain</span></div>`
+        : `<div class="pal-row" data-k="brain"><b>brain</b><span>connect an API key to conjure “${esc(q.trim().slice(0, 40))}”</span></div>`;
+      rows = brainRow + rows;
+    }
+    palHints.innerHTML = rows || '<div class="pal-row"><span class="dim">type an intent…</span></div>';
   }
   function paletteExec() {
-    const m = matchCmd(palInput.value);
-    if (!m) { renderHints(palInput.value); return; }
-    openPanel(m.k, argProps(m.k, m.arg));
+    const v = palInput.value.trim();
+    if (!v) { paletteClose(); return; }
+    const ex = exactCmd(v);
+    if (ex) { openPanel(ex.k, argProps(ex.k, ex.arg)); paletteClose(); return; }
+    if (!isFreeform(v)) {
+      const m = matchCmd(v);
+      if (m) { openPanel(m.k, argProps(m.k, m.arg)); paletteClose(); return; }
+    }
+    if (brainCfg().key) { conjureIntent(v); paletteClose(); return; }
+    openPanel('brain');
     paletteClose();
   }
   palInput.addEventListener('keydown', (e) => {
@@ -1406,7 +1786,9 @@
   palInput.addEventListener('input', () => renderHints(palInput.value));
   palHints.addEventListener('click', (e) => {
     const row = e.target.closest('.pal-row');
-    if (!row || !row.dataset.k) return;
+    if (!row) return;
+    if (row.dataset.brain) { conjureIntent(palInput.value.trim()); paletteClose(); return; }
+    if (!row.dataset.k) return;
     const m = matchCmd(palInput.value);
     openPanel(row.dataset.k, m && m.k === row.dataset.k ? argProps(m.k, m.arg) : {});
     paletteClose();
@@ -1440,6 +1822,7 @@
     get simT() { return simT; },
     get dreaming() { return dreaming; },
     shell: { open: openPanel, close: closePanel, wins, paletteOpen, paletteClose, registry: REGISTRY },
+    brain: { conjure: conjureIntent, validateSpec, renderSpec, config: brainCfg },
   };
   </script>
 </body>

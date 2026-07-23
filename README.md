@@ -50,6 +50,18 @@ Windows drag by their title bars, resize from the corner, and the layout **persi
 
 The creature and the desk share one economy: the embryo lives *behind* your windows, fed by the same cursor you work with.
 
+## Conjure anything — the brain slot
+
+The registry above is the desk's *vocabulary*, not its ceiling. Type `brain` in the palette and connect an Anthropic API key (it stays in your browser's localStorage and is sent only to `api.anthropic.com`). From then on, **any freeform wish becomes a surface**:
+
+> `a moon phase widget` · `btc and eth prices, refreshing` · `a pomodoro for deep work with a haiku` · `usd→krw right now` · `a packing list for a rainy week in kyoto`
+
+A frontier model receives your wish plus desk context (time, open surfaces, the creature's state) and emits a program in **GlassDSL v0** — a small grammar of primitives (text, stacks, lists, stats, meters, sparklines, buttons, live clocks, and allowlisted keyless live-data fetches). A strict whitelist validator sanitizes every node — unknown types, non-`https` links, and non-allowlisted hosts are dropped, and all text renders inert — then a DOM renderer realizes it as glass. Conjured surfaces **persist with your layout and restore offline**, no re-generation needed.
+
+Nobody built the surface you asked for. Only the atoms existed.
+
+Every `(intent → spec)` pair is logged locally — the seed dataset for a future on-device model that learns *your* desk.
+
 ## Run locally
 
 A single self-contained HTML file — no build step, no dependencies.
@@ -64,7 +76,7 @@ Needs a browser with **WebGL2** (recent Chrome, Edge, Firefox, or Safari).
 
 ## History
 
-Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. Phase 5.0 added the shell — glass windows, live data, and the conjure palette — turning the experiment into a desktop. The old prototypes live in git history.
+Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. Phase 5.0 added the shell — glass windows, live data, and the conjure palette — turning the experiment into a desktop. Phase 6.0 opened the brain slot: freeform wishes realized as generated GlassDSL surfaces by a frontier model, validated and rendered locally. The old prototypes live in git history.
 
 ---
 
