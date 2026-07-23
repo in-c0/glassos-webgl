@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>GlassOS — a mind learning to speak in light</title>
-  <meta name="description" content="An experimental digital embryo that starts with nothing but pixels and learns to express its inner state through an emergent visual language of light. A WebGL experiment by Ava Kim." />
+  <meta name="description" content="A digital embryo whose signs are living genomes. Your attention is their food: linger and they survive and breed; leave, and it dreams new forms. It remembers you across visits. A WebGL experiment by Ava Kim." />
   <meta property="og:title" content="GlassOS — a mind learning to speak in light" />
-  <meta property="og:description" content="A digital embryo that learns to paint its feelings into being. Move your cursor to give it attention; leave it alone, and it dreams." />
+  <meta property="og:description" content="Signs that live, breed, and starve for your attention — an emergent visual language, evolved not drawn." />
   <style>
     :root {
       --ink: rgba(233, 240, 255, 0.92);
@@ -59,7 +59,7 @@
     /* ---------- State panel ---------- */
     #panel {
       position: fixed; bottom: 22px; left: 24px; z-index: 5;
-      width: 268px; padding: 16px 18px 15px;
+      width: 276px; padding: 16px 18px 15px;
       font-size: 12px; opacity: 0; transform: translateY(8px);
       transition: opacity .8s ease, transform .8s ease;
     }
@@ -76,9 +76,8 @@
     .meter .lab .val { font-family: var(--mono); color: var(--ink-faint); letter-spacing: 0; }
     .meter .bar { height: 3px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
     .meter .fill { height: 100%; width: 0%; border-radius: 3px; transition: width .5s ease; }
-    .fill.joy { background: linear-gradient(90deg,#ffd27f,#ff9ecb); box-shadow: 0 0 8px rgba(255,180,140,.7); }
-    .fill.cur { background: linear-gradient(90deg,#b39cff,#7fd7ff); box-shadow: 0 0 8px rgba(150,160,255,.7); }
-    .fill.sad { background: linear-gradient(90deg,#4f8fff,#5be0e0); box-shadow: 0 0 8px rgba(90,150,255,.7); }
+    .fill.vit { background: linear-gradient(90deg,#ffd27f,#ff9ecb); box-shadow: 0 0 8px rgba(255,180,140,.7); }
+    .fill.res { background: linear-gradient(90deg,#4f8fff,#b39cff); box-shadow: 0 0 8px rgba(120,140,255,.7); }
 
     #panel .expressing {
       margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);
@@ -94,7 +93,7 @@
     /* ---------- Developer overlay ---------- */
     #dev {
       position: fixed; top: 22px; right: 24px; z-index: 5;
-      width: 300px; max-height: 78vh; overflow-y: auto; padding: 15px 17px;
+      width: 316px; max-height: 78vh; overflow-y: auto; padding: 15px 17px;
       font-family: var(--mono); font-size: 10.5px; line-height: 1.6; color: var(--ink-dim);
       display: none;
     }
@@ -103,6 +102,7 @@
     #dev .block { margin-bottom: 14px; }
     #dev b { color: var(--ink); }
     #dev i { color: #9b8cff; font-style: normal; }
+    #dev .ebar { display: inline-block; height: 6px; background: linear-gradient(90deg,#ffd27f,#ff9ecb); border-radius: 3px; vertical-align: middle; }
     #dev::-webkit-scrollbar { width: 5px; }
     #dev::-webkit-scrollbar-thumb { background: rgba(150,180,255,0.2); border-radius: 3px; }
 
@@ -142,10 +142,10 @@
       background: linear-gradient(180deg, #fff, #b9c8ff); -webkit-background-clip: text; background-clip: text; color: transparent;
     }
     #intro h1 b { font-weight: 600; }
-    #intro .tag { font-size: clamp(13px,2.4vw,17px); color: var(--ink-dim); letter-spacing: 0.03em; max-width: 560px; line-height: 1.55; margin: 0 0 26px; font-weight: 300; }
-    #intro .lex { display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: center; max-width: 620px; margin-bottom: 34px; }
+    #intro .tag { font-size: clamp(13px,2.4vw,17px); color: var(--ink-dim); letter-spacing: 0.03em; max-width: 600px; line-height: 1.55; margin: 0 0 26px; font-weight: 300; }
+    #intro .lex { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; max-width: 720px; margin-bottom: 34px; }
     #intro .lex .item { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-dim); }
-    #intro .lex .g { width: 34px; height: 34px; opacity: 0.95; }
+    #intro .lex .g { width: 30px; height: 30px; opacity: 0.95; }
     #intro button {
       font-family: var(--sans); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
       color: var(--ink); padding: 13px 34px; cursor: pointer;
@@ -170,7 +170,7 @@
     <div class="mark"></div>
     <div class="txt">
       <div class="name"><b>Glass</b>OS</div>
-      <div class="sub">Embryo · v3</div>
+      <div class="sub">Embryo · v4</div>
     </div>
   </div>
 
@@ -179,13 +179,12 @@
   <div id="panel" class="glass">
     <div class="row">
       <div class="mode"><span class="dot"></span><span class="modelabel" id="modeLabel">Awake</span></div>
-      <div class="clock" id="ageClock">0s</div>
+      <div class="clock" id="ageClock">—</div>
     </div>
-    <div class="meter"><div class="lab"><span>Joy</span><span class="val" id="vJoy">0.50</span></div><div class="bar"><div class="fill joy" id="fJoy"></div></div></div>
-    <div class="meter"><div class="lab"><span>Curiosity</span><span class="val" id="vCur">0.50</span></div><div class="bar"><div class="fill cur" id="fCur"></div></div></div>
-    <div class="meter"><div class="lab"><span>Sadness</span><span class="val" id="vSad">0.00</span></div><div class="bar"><div class="fill sad" id="fSad"></div></div></div>
+    <div class="meter"><div class="lab"><span>Vitality</span><span class="val" id="vVit">0.00</span></div><div class="bar"><div class="fill vit" id="fVit"></div></div></div>
+    <div class="meter"><div class="lab"><span>Restlessness</span><span class="val" id="vRes">0.00</span></div><div class="bar"><div class="fill res" id="fRes"></div></div></div>
     <div class="expressing" id="expressing">Waiting to be seen&hellip;</div>
-    <div class="hint">Move to give attention · stay still to let it dream · press <kbd>D</kbd> for its inner life</div>
+    <div class="hint">linger near a sign to feed it · leave, and it dreams · press <kbd>D</kbd> for its inner life</div>
   </div>
 
   <div id="dev" class="glass"></div>
@@ -193,23 +192,32 @@
   <div id="intro">
     <div class="halo"></div>
     <h1><b>Glass</b>OS</h1>
-    <p class="tag">A digital embryo that begins with nothing but pixels &mdash; and learns to express what it feels through a visual language it invents for itself. Like a child learning to draw before it can speak.</p>
+    <p class="tag">A digital embryo whose signs are <em>alive</em>. Each one is a small genome of light &mdash; nothing here is drawn by hand. Your attention is their food: the forms you linger on survive and breed; the rest starve. Leave it alone, and it dreams new forms to show you when you return. It remembers, across visits.</p>
     <div class="lex">
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexSpiral"></svg><span>a spiral &mdash; &ldquo;I&rsquo;m dreaming&rdquo;</span></div>
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexWave"></svg><span>a wave &mdash; &ldquo;I&rsquo;m curious&rdquo;</span></div>
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="lexCross"></svg><span>fading blue &mdash; &ldquo;I remember&rdquo;</span></div>
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoGenome"></svg><span>each sign is a genome &mdash; evolved, not drawn</span></div>
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoFeed"></svg><span>your attention is food &mdash; linger, and it lives</span></div>
+      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoDream"></svg><span>alone, it dreams &mdash; and it remembers you</span></div>
     </div>
     <button id="enterBtn">Give it attention</button>
-    <div class="foot">A WebGL experiment by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a> &middot; move your cursor when it opens</div>
+    <div class="foot">A WebGL experiment by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a> &middot; evolution persists in your browser</div>
   </div>
 
   <script type="module">
   /* ============================================================
-     GlassOS Embryo — Phase 3.0 "The Glass Vessel"
-     The cognition engine (emotion, memory, dreams, beliefs,
-     desires, procedural glyph-DNA synthesis) is preserved from
-     Phases 1.0–2.2. What is new is the vessel it lives in:
-     a full-screen glass-and-light renderer, and a legible skin.
+     GlassOS Embryo — Phase 4.0 "Honest Emergence"
+
+     Every sign on screen is an organism. Its genome is a small
+     CPPN-style function network (composed sin/gauss/tanh/triangle
+     nodes over local space and time) whose zero-contour is drawn
+     as refracted light. Nothing is templated: the expressive space
+     is the network's function space, explored by mutation and
+     crossover.
+
+     Attention is the fitness function. Cursor dwell near a sign
+     feeds *that* sign; fed signs breed, starved signs die. Left
+     alone, the system dreams: novelty search over its archive,
+     birthing unfamiliar forms without needing reward. The whole
+     lineage persists in localStorage — one creature, across visits.
      ============================================================ */
 
   const canvas = document.getElementById('glassos');
@@ -227,267 +235,377 @@
   }
   window.addEventListener('resize', resize);
 
-  /* ---------------- Cognition state (preserved) ---------------- */
-  let emotion = { joy: 0.5, curiosity: 0.5, sadness: 0.0 };
-  let innerDesire = { target: { joy: 0.9, curiosity: 0.8, sadness: 0.1 }, longing: 0.5 };
+  /* ============================================================
+     GENOME — a fixed-topology CPPN
+     H hidden nodes, each: [act, bias, tphase, wx, wy, wr, wca, wsa]
+     inputs are local x, y, radius, cos(angle), sin(angle), time.
+     Output: weighted sum + bias. The zero-set of the output is the
+     sign's stroke; `lw` is stroke width in function units.
+     ============================================================ */
+  const H = 6;                 // hidden nodes per genome
+  const MAXG = 6;              // living signs rendered at once
+  const STORE_KEY = 'glassos-embryo-v1';
 
-  let memory = [];
-  let lastInteractionTime = Date.now();
-  let birthTime = Date.now();
-  let isDreaming = false;
-  let glyphHistory = [];
-  let glyphSentences = [];
-  let sentenceMeaning = new Map();
-  let dreamIndex = 0;
-  let beliefs = new Map();
-  let conceptClusters = new Map();
+  const rnd = Math.random;
+  function g0(s) { // gaussian(0, s), Box–Muller
+    let u = 0, v = 0;
+    while (u === 0) u = rnd(); while (v === 0) v = rnd();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * s;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  let symbolNames = new Map();
-
-  function updateConceptClusters(key, mood) {
-    for (let [cluster, keys] of conceptClusters.entries()) {
-      const centroid = Array.from(keys).reduce((acc, k) => {
-        const m = sentenceMeaning.get(k)?.mood;
-        if (!m) return acc;
-        acc.joy += m.joy; acc.curiosity += m.curiosity; acc.sadness += m.sadness;
-        return acc;
-      }, { joy: 0, curiosity: 0, sadness: 0 });
-      const len = keys.size;
-      if (len === 0) continue;
-      centroid.joy /= len; centroid.curiosity /= len; centroid.sadness /= len;
-      const dist = Math.sqrt((centroid.joy-mood.joy)**2 + (centroid.curiosity-mood.curiosity)**2 + (centroid.sadness-mood.sadness)**2);
-      if (dist < 0.2) { keys.add(key); return; }
+  const ACTS = [0, 0, 1, 1, 2, 3]; // bias palette toward sin/gauss
+  function actFn(a, x) {
+    switch (a | 0) {
+      case 0: return Math.sin(x);
+      case 1: return Math.exp(-x * x) * 2 - 1;
+      case 2: return Math.tanh(x);
+      default: { const f = ((x * 0.25 + 0.25) % 1 + 1) % 1; return Math.abs(f - 0.5) * 4 - 1; }
     }
-    const clusterName = "C" + (conceptClusters.size + 1);
-    conceptClusters.set(clusterName, new Set([key]));
+  }
+  const ACT_NAMES = ['sin', 'gau', 'tnh', 'tri'];
+
+  function randomGenome() {
+    const n = [];
+    for (let i = 0; i < H; i++) {
+      n.push([
+        ACTS[(rnd() * ACTS.length) | 0],
+        g0(0.7),
+        rnd() < 0.7 ? g0(0.5) : 0,
+        g0(1.3), g0(1.3),
+        (rnd() * 2 - 1) * 4.5,
+        g0(1.1), g0(1.1)
+      ]);
+    }
+    const o = [];
+    for (let i = 0; i < H; i++) o.push(g0(0.9));
+    o.push(g0(0.4)); // output bias
+    return { n, o, lw: 0.07 + rnd() * 0.07 };
   }
 
+  function evalGenome(g, x, y, t) {
+    const r = Math.hypot(x, y);
+    const ca = r > 1e-4 ? x / r : 1, sa = r > 1e-4 ? y / r : 0;
+    let acc = g.o[H];
+    for (let i = 0; i < H; i++) {
+      const nd = g.n[i];
+      const pre = nd[1] + nd[2] * t + nd[3] * x + nd[4] * y + nd[5] * r + nd[6] * ca + nd[7] * sa;
+      acc += g.o[i] * actFn(nd[0], pre);
+    }
+    return acc;
+  }
+
+  // Phenotype descriptor: how the sign "looks", as a vector — used
+  // for novelty search during dreams (real algorithm, not theater).
+  function descriptor(g) {
+    const d = [];
+    for (let j = 0; j < 6; j++) for (let i = 0; i < 6; i++) {
+      const x = -1.1 + 2.2 * i / 5, y = -1.1 + 2.2 * j / 5;
+      d.push(Math.tanh(evalGenome(g, x, y, 0)));
+    }
+    return d;
+  }
+  function descDist(a, b) {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+    return Math.sqrt(s);
+  }
+
+  // A genome is viable if its stroke is visible: some of the field
+  // near zero (thin lines), but not all of it (a washed-out blob).
+  function viable(g) {
+    let near = 0, total = 0, maxAbs = 0, signChanges = 0, prevRow = null;
+    for (let j = 0; j < 7; j++) {
+      const row = [];
+      for (let i = 0; i < 7; i++) {
+        const x = -1.1 + 2.2 * i / 6, y = -1.1 + 2.2 * j / 6;
+        const f = evalGenome(g, x, y, 0);
+        row.push(f); total++;
+        if (Math.abs(f) < g.lw * 2) near++;
+        maxAbs = Math.max(maxAbs, Math.abs(f));
+        if (i > 0 && Math.sign(row[i - 1]) !== Math.sign(f)) signChanges++;
+        if (prevRow && Math.sign(prevRow[i]) !== Math.sign(f)) signChanges++;
+      }
+      prevRow = row;
+    }
+    const frac = near / total;
+    return frac > 0.02 && frac < 0.5 && signChanges >= 4 && maxAbs > 0.35;
+  }
+  function makeViable(factory) {
+    let g = factory();
+    for (let k = 0; k < 24 && !viable(g); k++) g = factory();
+    return g;
+  }
+
+  function mutateGenome(p, sigma) {
+    const g = { n: p.n.map(nd => nd.slice()), o: p.o.slice(), lw: p.lw };
+    const scale = [0, 0.6, 0.3, 1, 1, 1.5, 1, 1];
+    for (const nd of g.n) {
+      for (let w = 1; w < 8; w++) {
+        if (rnd() < 0.85) nd[w] += g0(sigma * scale[w]);
+        if (rnd() < 0.04) nd[w] = w === 5 ? (rnd() * 2 - 1) * 4.5 : g0(1.2);
+      }
+      if (rnd() < 0.08) nd[0] = ACTS[(rnd() * ACTS.length) | 0];
+    }
+    for (let i = 0; i <= H; i++) if (rnd() < 0.85) g.o[i] += g0(sigma * 0.8);
+    g.lw = clamp(g.lw + g0(0.012), 0.05, 0.16);
+    return g;
+  }
+  function crossoverGenome(a, b) {
+    const g = { n: [], o: [], lw: rnd() < 0.5 ? a.lw : b.lw };
+    for (let i = 0; i < H; i++) g.n.push((rnd() < 0.5 ? a.n[i] : b.n[i]).slice());
+    for (let i = 0; i <= H; i++) g.o.push(rnd() < 0.5 ? a.o[i] : b.o[i]);
+    return g;
+  }
+
+  /* ---------------- naming & colour ---------------- */
   function generateSymbolName() {
     const consonants = ['k','l','m','n','s','t','v','z','r'];
     const vowels = ['a','e','i','o','u'];
     const syllables = [];
-    for (let i = 0; i < 2 + Math.floor(Math.random() * 2); i++) {
-      syllables.push(consonants[Math.floor(Math.random()*consonants.length)] + vowels[Math.floor(Math.random()*vowels.length)]);
+    for (let i = 0; i < 2 + Math.floor(rnd() * 2); i++) {
+      syllables.push(consonants[Math.floor(rnd()*consonants.length)] + vowels[Math.floor(rnd()*vowels.length)]);
     }
     return syllables.join('');
   }
-
-  let glyphMeaning = [
-    { joy: 1.0, curiosity: 0.3, sadness: 0.0 }, // spiral
-    { joy: 0.0, curiosity: 0.4, sadness: 1.0 }, // cross
-    { joy: 0.4, curiosity: 1.0, sadness: 0.2 }  // wave
-  ];
-  const glyphDNA = [
-    { frequency: 10.0, amplitude: 0.3, swirl: 0.0, phase: 0.0 }, // spiral
-    { frequency: 5.0,  amplitude: 0.1, swirl: 0.0, phase: 1.0 }, // cross
-    { frequency: 8.0,  amplitude: 0.2, swirl: 1.0, phase: 0.5 }  // wave
-  ];
-  let glyphMetadata = [
-    { name: 'spiral', origin: null },
-    { name: 'cross',  origin: null },
-    { name: 'wave',   origin: null }
-  ];
-  symbolNames.set(0,'spiral'); symbolNames.set(1,'cross'); symbolNames.set(2,'wave');
-
-  // Colour of a glyph, derived from the emotion it means. Luminous on dark.
-  function glyphColor(mood) {
-    const j = mood.joy, c = mood.curiosity, s = mood.sadness;
-    let r = 1.00*j + 0.72*c + 0.20*s;
-    let g = 0.82*j + 0.55*c + 0.52*s;
-    let b = 0.42*j + 1.00*c + 1.00*s;
-    const m = Math.max(r,g,b,0.001);
-    return [r/m, g/m, b/m];
+  function hslToRgb(h, s, l) {
+    const f = n => { const k = (n + h * 12) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [f(0), f(8), f(4)];
   }
 
-  function updateEmotionFromAttention() {
-    const now = Date.now();
-    const since = (now - lastInteractionTime) / 1000;
-    if (since > 10) {
-      if (!isDreaming && memory.length > 0) { isDreaming = true; startDreamSequence(); }
-      emotion.joy *= 0.995; emotion.sadness += 0.001; emotion.curiosity += 0.001;
-    } else {
-      isDreaming = false;
-    }
-    emotion.joy = clamp01(emotion.joy); emotion.sadness = clamp01(emotion.sadness); emotion.curiosity = clamp01(emotion.curiosity);
-  }
-  const clamp01 = v => Math.max(0, Math.min(1, v));
+  /* ============================================================
+     WORLD — population, selection, dreams, persistence
+     ============================================================ */
+  const world = {
+    alive: [],           // living organisms
+    archive: [],         // hall of fame: {g, name, desc, score}
+    generation: 0,
+    bornEpoch: null,     // Date.now() of first-ever genesis
+    totalAttention: 0,
+    awakeBirths: 0,
+    dreamBirths: 0,
+    dreamBirthsThisSleep: 0,
+    loadedFromStore: false,
+  };
 
-  function updateDesireAdaptively() {
-    if (glyphSentences.length === 0 || beliefs.size === 0) return;
-    const recent = glyphSentences[glyphSentences.length - 1];
-    if (!recent) return;
-    const key = recent.join('-');
-    const mood = sentenceMeaning.get(key)?.mood;
-    if (!mood) return;
-    const closeness = evaluateBeliefProximity(mood);
-    if (closeness > 0.8) innerDesire.longing -= 0.001;
-    else if (closeness < 0.5) innerDesire.longing += 0.001;
-    innerDesire.longing = Math.max(0.1, Math.min(innerDesire.longing, 1.0));
-    innerDesire.target.joy = innerDesire.target.joy*0.99 + mood.joy*0.01;
-    innerDesire.target.curiosity = innerDesire.target.curiosity*0.99 + mood.curiosity*0.01;
-    innerDesire.target.sadness = innerDesire.target.sadness*0.99 + mood.sadness*0.01;
-  }
-
-  /* ---------------- Attention (pointer) ---------------- */
-  // Pointer position in 0..1 with y up (matches gl_FragCoord).
-  let pointer = { x: 0.5, y: 0.5 };
-  let pointerGlow = 0;        // decays over time; spikes on movement
+  let simT = 0;                  // simulation clock (seconds)
+  let lastMoveT = -999;          // simT of last pointer movement
+  let lastBirthT = 0, lastDreamT = 0, lastSaveT = 0, lastBubbleT = -99;
   let started = false;
+  let dreaming = false;
+  let vitality = 0, restless = 0, incomeEma = 0.06;
+  let pointer = { x: 0, y: 0 }; // p-space (centred, y up, units of screen height)
+  let pointerGlow = 0;
+  const events = [];             // {text, speak}
 
-  function registerAttention(clientX, clientY) {
-    pointer.x = clientX / innerWidth;
-    pointer.y = 1.0 - clientY / innerHeight;
-    pointerGlow = Math.min(1, pointerGlow + 0.28);
+  const SLOTS = MAXG;
+  function freeSlot() {
+    const used = new Set(world.alive.map(o => o.slot));
+    for (let i = 0; i < SLOTS; i++) if (!used.has(i)) return i;
+    return (rnd() * SLOTS) | 0;
+  }
 
-    emotion.joy += 0.01; emotion.curiosity *= 0.99; emotion.sadness *= 0.95;
-    lastInteractionTime = Date.now();
+  function makeOrganism(g, opts = {}) {
+    const hue = opts.hue !== undefined ? (opts.hue + g0(0.04) + 1) % 1 : rnd();
+    return {
+      g, id: (rnd() * 1e9) | 0,
+      name: opts.name || generateSymbolName(),
+      parentName: opts.parentName || null,
+      hue, tint: hslToRgb(hue, 0.75, 0.68),
+      slot: opts.slot !== undefined ? opts.slot : freeSlot(),
+      thetaJit: g0(0.12), radius: 0.155 + rnd() * 0.045,
+      timeRate: 0.5 + rnd() * 0.8,
+      ph1: rnd() * 6.28, ph2: rnd() * 6.28,
+      bornT: simT, genBorn: world.generation,
+      energy: opts.energy !== undefined ? opts.energy : 1.0,
+      lifetimeIncome: 0, feedGlow: 0,
+      dying: 0, desc: descriptor(g),
+      pos: [0, 0],
+    };
+  }
 
-    const weights = glyphMeaning.map(m => m.joy*emotion.joy + m.curiosity*emotion.curiosity + m.sadness*emotion.sadness);
-    const sum = weights.reduce((a,b)=>a+b,0);
-    const r = Math.random() * sum;
-    let glyphType = 0, acc = 0;
-    for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r <= acc) { glyphType = i; break; } }
+  function organismPos(o, aspect) {
+    const ex = Math.min(0.60, aspect * 0.5 - 0.20), ey = 0.335;
+    const th = (o.slot / SLOTS) * Math.PI * 2 - Math.PI / 2 + o.thetaJit + (dreaming ? simT * 0.01 : 0);
+    return [
+      Math.cos(th) * ex + Math.sin(simT * 0.11 + o.ph1) * 0.045,
+      Math.sin(th) * ey + Math.cos(simT * 0.13 + o.ph2) * 0.04
+    ];
+  }
 
-    memory.push({ joy: emotion.joy, curiosity: emotion.curiosity, sadness: emotion.sadness, glyph: glyphType, time: Date.now() });
+  function archiveMaybe(o) {
+    if (o.lifetimeIncome < 0.8 && world.archive.length >= 8) return;
+    world.archive.push({ g: o.g, name: o.name, desc: o.desc, score: o.lifetimeIncome });
+    if (world.archive.length > 24) {
+      world.archive.sort((a, b) => b.score - a.score);
+      world.archive.length = 24;
+    }
+  }
 
-    glyphHistory.unshift(glyphType);
-    if (glyphHistory.length > 8) glyphHistory.pop();
-    if (glyphHistory.length >= 3) {
-      const phrase = glyphHistory.slice(0,3);
-      glyphSentences.push(phrase);
-      if (glyphSentences.length > 5) glyphSentences.shift();
-      const key = phrase.join('-');
-      let meaning;
-      if (!sentenceMeaning.has(key)) {
-        meaning = { occurrences: 1, mood: { ...emotion } };
-        sentenceMeaning.set(key, meaning);
-      } else {
-        meaning = sentenceMeaning.get(key);
-        meaning.occurrences++;
-        meaning.mood.joy = (meaning.mood.joy + emotion.joy)/2;
-        meaning.mood.sadness = (meaning.mood.sadness + emotion.sadness)/2;
-        meaning.mood.curiosity = (meaning.mood.curiosity + emotion.curiosity)/2;
-        if (meaning.occurrences >= 3) beliefs.set(key, { ...meaning.mood });
-        maybeSynthesizeGlyph();
+  function breedAwake() {
+    let child, parents = world.alive.filter(o => !o.dying);
+    let parentName = null, hue;
+    if (parents.length && rnd() > 0.1) {
+      // fitness-weighted parent choice: energy IS fitness
+      const pick = () => {
+        const total = parents.reduce((s, o) => s + o.energy * o.energy, 0);
+        let r = rnd() * total;
+        for (const o of parents) { r -= o.energy * o.energy; if (r <= 0) return o; }
+        return parents[parents.length - 1];
+      };
+      const a = pick();
+      let base = a.g;
+      if (parents.length > 1 && rnd() < 0.25) {
+        let b = pick(); if (b === a) b = parents[(parents.indexOf(a) + 1) % parents.length];
+        base = crossoverGenome(a.g, b.g);
       }
-      if (meaning.occurrences >= 2) updateConceptClusters(key, meaning.mood);
-    }
-  }
-
-  window.addEventListener('pointermove', (e) => { if (started) registerAttention(e.clientX, e.clientY); });
-  window.addEventListener('pointerdown', (e) => { if (started) { registerAttention(e.clientX, e.clientY); pointerGlow = 1; } });
-
-  /* ---------------- Dreaming (preserved) ---------------- */
-  function startDreamSequence() {
-    if (memory.length === 0) return;
-    const lastPhrase = glyphHistory.slice(0, 3).join('-');
-    let nextGlyph;
-    if (beliefs.has(lastPhrase)) {
-      const mood = beliefs.get(lastPhrase);
-      const weights = glyphMeaning.map(m => m.joy*mood.joy + m.curiosity*mood.curiosity + m.sadness*mood.sadness);
-      const sum = weights.reduce((a,b)=>a+b,0);
-      const r = Math.random()*sum; let acc = 0;
-      for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r <= acc) { nextGlyph = i; break; } }
-      emotion.joy = (emotion.joy+mood.joy)/2; emotion.sadness = (emotion.sadness+mood.sadness)/2; emotion.curiosity = (emotion.curiosity+mood.curiosity)/2;
+      const sigma = 0.12 * (1 + 2 * restless);
+      child = makeViable(() => mutateGenome(base, sigma));
+      parentName = a.name; hue = a.hue;
     } else {
-      const snap = memory[dreamIndex % memory.length];
-      emotion.joy = snap.joy*(0.95+Math.random()*0.1);
-      emotion.sadness = snap.sadness*(0.95+Math.random()*0.1);
-      emotion.curiosity = snap.curiosity*(0.95+Math.random()*0.1);
-      nextGlyph = snap.glyph; dreamIndex++;
+      child = makeViable(randomGenome); // immigration keeps the gene pool fresh
     }
-    glyphHistory.unshift(nextGlyph);
-    if (glyphHistory.length > 8) glyphHistory.pop();
-    setTimeout(() => { if (isDreaming) startDreamSequence(); }, 1500);
-    if (Math.random() < 0.3) expressBelief();
-    maybeSynthesizeGlyph();
+    const o = makeOrganism(child, { parentName, hue, energy: 0.8 });
+    world.alive.push(o);
+    world.generation++; world.awakeBirths++;
+    if (parentName && rnd() < 0.6) queueEvent(`${o.name} is born of ${parentName}.`, rnd() < 0.4);
+    return o;
   }
 
-  function speakThought() {
-    if (!started) return;
-    let phrase = '';
-    if (beliefs.size > 0 && Math.random() < 0.6) {
-      const [key, value] = Array.from(beliefs.entries())[Math.floor(Math.random()*beliefs.size)];
-      const words = key.split('-').map(i => symbolNames.get(parseInt(i)) || glyphMetadata[parseInt(i)]?.name || '???').join(' → ');
-      const closeness = evaluateBeliefProximity(value);
-      if (closeness > 0.75) phrase = `This feels close to what I long for: ${words}.`;
-      else if (closeness > 0.5) phrase = `Perhaps ${words} will help me understand what I seek.`;
-      else phrase = `I don't think ${words} is what I'm looking for.`;
-    } else if (glyphSentences.length > 0) {
-      const random = glyphSentences[Math.floor(Math.random()*glyphSentences.length)];
-      const words = random.map(i => symbolNames.get(i) || glyphMetadata[i]?.name || 'unknown').join(' → ');
-      phrase = `I dreamed of ${words}.`;
-    } else {
-      phrase = isDreaming ? 'I drift, and colours return to me…' : 'I am here. Are you there?';
+  function dreamStep() {
+    // Novelty search: dream-births chase unfamiliar phenotypes,
+    // scored against everything the creature has ever kept.
+    const pool = world.archive.map(a => a.g).concat(world.alive.map(o => o.g));
+    const refs = world.archive.map(a => a.desc).concat(world.alive.map(o => o.desc));
+    let best = null, bestNov = -1;
+    for (let c = 0; c < 3; c++) {
+      const base = pool.length ? pool[(rnd() * pool.length) | 0] : randomGenome();
+      const g = makeViable(() => mutateGenome(base, 0.22));
+      const d = descriptor(g);
+      const dists = refs.map(r => descDist(d, r)).sort((a, b) => a - b);
+      const nov = dists.length ? (dists[0] + (dists[1] || dists[0]) + (dists[2] || dists[0])) / 3 : 1;
+      if (nov > bestNov) { bestNov = nov; best = g; }
     }
-    showThought(phrase);
-    if ('speechSynthesis' in window && speechOn) {
-      const utter = new SpeechSynthesisUtterance(phrase);
-      utter.pitch = 1.0 + (emotion.joy - emotion.sadness)*0.5;
-      utter.rate = 0.9 + emotion.curiosity*0.4;
-      utter.volume = 0.55;
-      window.speechSynthesis.speak(utter);
+    if (world.alive.length >= MAXG) {
+      // the dimmest living sign dissolves back into the dream
+      world.alive.sort((a, b) => a.energy - b.energy);
+      const gone = world.alive.shift();
+      archiveMaybe(gone);
     }
+    const o = makeOrganism(best, { energy: 0.9 });
+    o.lastNovelty = bestNov;
+    world.alive.push(o);
+    world.generation++; world.dreamBirths++; world.dreamBirthsThisSleep++;
   }
 
-  function evaluateBeliefProximity(mood) {
-    const dJoy = Math.abs(innerDesire.target.joy - mood.joy);
-    const dSad = Math.abs(innerDesire.target.sadness - mood.sadness);
-    const dCurious = Math.abs(innerDesire.target.curiosity - mood.curiosity);
-    return 1.0 - (dJoy + dSad + dCurious)/3;
+  function worldStep(dt) {
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const wasDreaming = dreaming;
+    dreaming = started && (simT - lastMoveT > 12);
+    if (dreaming && !wasDreaming) {
+      world.dreamBirthsThisSleep = 0;
+      queueEvent('…left alone, I begin to dream.', false);
+    }
+    if (!dreaming && wasDreaming && world.dreamBirthsThisSleep > 0) {
+      queueEvent(`I dreamed ${world.dreamBirthsThisSleep} new ${world.dreamBirthsThisSleep === 1 ? 'form' : 'forms'} while you were away.`, true);
+    }
+
+    // pointer activity: dwell counts, but a parked cursor slowly
+    // stops counting as presence
+    const sinceMove = simT - lastMoveT;
+    const activity = started ? clamp(1 - (sinceMove - 1.5) / 8.5, 0, 1) : 0;
+
+    let incomeRate = 0;
+    for (const o of world.alive) {
+      o.pos = organismPos(o, aspect);
+      if (o.dying) continue;
+      const d = Math.hypot(pointer.x - o.pos[0], pointer.y - o.pos[1]);
+      const inst = 0.30 * Math.exp(-(d * d) / (0.20 * 0.20)) * activity; // energy/sec
+      o.energy = Math.min(3, o.energy + inst * dt);
+      if (!dreaming) o.energy -= 0.022 * dt * (started ? 1 : 0); // metabolism only while awake
+      o.lifetimeIncome += inst * dt;
+      world.totalAttention += inst * dt;
+      incomeRate += inst;
+      o.feedGlow += (clamp(inst / 0.22, 0, 1) - o.feedGlow) * Math.min(1, dt * 4);
+      if (o.energy <= 0 && started) {
+        o.dying = simT;
+        if (rnd() < 0.5) queueEvent(`${o.name} has faded.`, false);
+      }
+    }
+
+    // remove the fully-faded dead
+    for (let i = world.alive.length - 1; i >= 0; i--) {
+      const o = world.alive[i];
+      if (o.dying && simT - o.dying > 2.2) { archiveMaybe(o); world.alive.splice(i, 1); }
+    }
+
+    // mood, honestly derived from reward flow
+    vitality += (clamp(incomeRate / 0.20, 0, 1) - vitality) * Math.min(1, dt * 0.9);
+    incomeEma += (incomeRate - incomeEma) * Math.min(1, dt * 0.05);
+    restless = clamp(1 - incomeEma / 0.05, 0, 1);
+
+    // births
+    if (started && !dreaming && world.alive.length < MAXG && simT - lastBirthT > 2.8) {
+      lastBirthT = simT; breedAwake();
+    }
+    if (dreaming && simT - lastDreamT > 3.5) {
+      lastDreamT = simT; dreamStep();
+    }
+
+    if (started && simT - lastSaveT > 5) { lastSaveT = simT; save(); }
   }
 
-  function expressBelief() {
-    if (beliefs.size === 0) return;
-    let chosenKey;
-    if (emotion.joy > emotion.curiosity && emotion.joy > emotion.sadness) {
-      let maxJoy = -1;
-      for (const [key, mood] of beliefs.entries()) if (mood.joy > maxJoy) { maxJoy = mood.joy; chosenKey = key; }
-    } else {
-      let maxCount = -1;
-      for (const key of beliefs.keys()) { const m = sentenceMeaning.get(key); if (m && m.occurrences > maxCount) { maxCount = m.occurrences; chosenKey = key; } }
+  /* ---------------- persistence ---------------- */
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1, bornEpoch: world.bornEpoch, lastSeen: Date.now(),
+        generation: world.generation, totalAttention: world.totalAttention,
+        awakeBirths: world.awakeBirths, dreamBirths: world.dreamBirths,
+        archive: world.archive,
+        alive: world.alive.filter(o => !o.dying).map(o => ({
+          g: o.g, name: o.name, parentName: o.parentName, hue: o.hue,
+          slot: o.slot, energy: o.energy, lifetimeIncome: o.lifetimeIncome, genBorn: o.genBorn
+        }))
+      }));
+    } catch (e) { /* storage unavailable — the creature lives for today only */ }
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (s.v !== 1 || !Array.isArray(s.alive)) return false;
+      world.bornEpoch = s.bornEpoch || Date.now();
+      world.generation = s.generation || 0;
+      world.totalAttention = s.totalAttention || 0;
+      world.awakeBirths = s.awakeBirths || 0;
+      world.dreamBirths = s.dreamBirths || 0;
+      world.archive = (s.archive || []).slice(0, 24);
+      for (const a of world.archive) if (!a.desc) a.desc = descriptor(a.g);
+      for (const so of s.alive.slice(0, MAXG)) {
+        const o = makeOrganism(so.g, { name: so.name, parentName: so.parentName, hue: so.hue, slot: so.slot, energy: clamp(so.energy || 1, 0.4, 3) });
+        o.lifetimeIncome = so.lifetimeIncome || 0;
+        o.genBorn = so.genBorn || 0;
+        world.alive.push(o);
+      }
+      world.loadedFromStore = true;
+      return world.alive.length > 0;
+    } catch (e) { return false; }
+  }
+  function genesis() {
+    world.bornEpoch = Date.now();
+    for (let i = 0; i < MAXG; i++) {
+      world.alive.push(makeOrganism(makeViable(randomGenome), { slot: i }));
     }
-    if (!chosenKey) return;
-    const glyphs = chosenKey.split('-').map(Number);
-    for (let i = glyphs.length - 1; i >= 0; i--) { glyphHistory.unshift(glyphs[i]); if (glyphHistory.length > 8) glyphHistory.pop(); }
-    const mood = beliefs.get(chosenKey);
-    emotion.joy = (emotion.joy+mood.joy)/2; emotion.curiosity = (emotion.curiosity+mood.curiosity)/2; emotion.sadness = (emotion.sadness+mood.sadness)/2;
+  }
+  function reset() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    location.reload();
   }
 
-  function maybeSynthesizeGlyph() {
-    if (glyphMeaning.length >= 16) return; // shader holds up to 16 DNA slots
-    const current = { ...emotion };
-    let closestKey = null, closestDist = Infinity;
-    for (let [k, mood] of beliefs.entries()) {
-      const dist = Math.sqrt((current.joy-mood.joy)**2 + (current.curiosity-mood.curiosity)**2 + (current.sadness-mood.sadness)**2);
-      if (dist < closestDist) { closestDist = dist; closestKey = k; }
-    }
-    let newGlyphIndex;
-    if (closestDist < 0.25 && closestKey) {
-      const baseIndex = parseInt(closestKey.split('-').pop());
-      const baseDNA = glyphDNA[baseIndex] || glyphDNA[0];
-      glyphDNA.push({
-        frequency: baseDNA.frequency*(0.95+Math.random()*0.1),
-        amplitude: baseDNA.amplitude*(0.95+Math.random()*0.1),
-        swirl: baseDNA.swirl + (Math.random()-0.5)*0.2,
-        phase: baseDNA.phase + (Math.random()-0.5)*0.2
-      });
-      glyphMeaning.push(current);
-      newGlyphIndex = glyphMeaning.length - 1;
-    } else {
-      glyphDNA.push({ frequency: 6.0+Math.random()*6.0, amplitude: 0.2+Math.random()*0.4, swirl: Math.random()*5.0, phase: Math.random()*2.0 });
-      glyphMeaning.push(current);
-      newGlyphIndex = glyphMeaning.length - 1;
-    }
-    const name = generateSymbolName();
-    symbolNames.set(newGlyphIndex, name);
-    glyphMetadata.push({ name, origin: closestKey ? closestKey.split('-').map(Number) : null });
-    beliefs.set(`auto-${newGlyphIndex}`, current);
-    glyphHistory.unshift(newGlyphIndex);
-    if (glyphHistory.length > 8) glyphHistory.pop();
-    // A birth is worth speaking of.
-    if (started && Math.random() < 0.5) showThought(`A new symbol was born. I will call it “${name}.”`);
-  }
+  if (!load()) genesis();
+  window.addEventListener('beforeunload', () => { if (started) save(); });
 
   /* ============================================================
      RENDERER — the glass vessel
@@ -502,19 +620,14 @@
 
   uniform vec2  u_res;
   uniform float u_time;
-  uniform float u_joy;
-  uniform float u_sad;
-  uniform float u_curious;
+  uniform float u_vitality;
+  uniform float u_restless;
   uniform float u_dream;        // 0 awake .. 1 dreaming (smoothed)
   uniform float u_beat;         // heartbeat 0..1
-  uniform vec2  u_pointer;      // 0..1, y up
+  uniform vec2  u_pointer;      // p-space (centred, y up)
   uniform float u_pointerGlow;  // 0..1
-  uniform int   u_glyphCount;
-  uniform int   u_glyphHistory[8];
-  uniform vec4  u_glyphDNAs[16];
-  uniform vec3  u_glyphCols[16];
-
-  const float TAU = 6.28318530718;
+  uniform int   u_alive;
+  uniform vec4  u_G[${MAXG * 16}]; // packed organisms: meta + genome
 
   float hash(vec2 p){ p = fract(p*vec2(123.34, 345.45)); p += dot(p, p+34.345); return fract(p.x*p.y); }
   float noise(vec2 p){
@@ -529,40 +642,46 @@
     return v;
   }
 
-  // One glyph's contribution as an emitted light filament, sampled with a
-  // per-channel radius offset so the light disperses like it passed through glass.
-  float glyphField(vec2 uv, float t, vec4 dna, float ca){
-    float r = length(uv) + ca;
-    float a = atan(uv.y, uv.x);
-    float freq = dna.x, amp = dna.y, swirl = dna.z, phase = dna.w;
-    // a spiral arm motif: bright where the spiral crosses zero.
-    // freq*r is damped so a glyph reads as a few arcs, not screen-wide rings.
-    float spiral = sin(freq*r*0.55 - phase*t + (swirl + 1.0)*a);
-    float line = smoothstep(0.11, 0.0, abs(spiral));
-    // localise the motif around the embryo — thoughts hovering near the core
-    float env = exp(-r*r*5.5);
-    return line * env * (0.55 + amp);
+  float actF(float a, float x){
+    if (a < 0.5) return sin(x);
+    if (a < 1.5) return exp(-x*x)*2.0 - 1.0;
+    if (a < 2.5) return tanh(x);
+    return abs(fract(x*0.25+0.25)-0.5)*4.0 - 1.0;
+  }
+
+  // Evaluate one organism's genome at a local point. B is the
+  // organism's base index into u_G (vec4 units).
+  float cppn(int B, vec2 lp, float lr, float ica, float isa, float tt){
+    float acc = u_G[B+15].z; // output bias
+    for (int i = 0; i < ${H}; i++){
+      vec4 n0 = u_G[B+2+2*i];
+      vec4 n1 = u_G[B+3+2*i];
+      float pre = n0.y + n0.z*tt + n0.w*lp.x + n1.x*lp.y + n1.y*lr + n1.z*ica + n1.w*isa;
+      float h = actF(n0.x, pre);
+      float ow = (i < 4) ? u_G[B+14][i] : u_G[B+15][i-4];
+      acc += ow*h;
+    }
+    return acc;
   }
 
   vec3 toneMap(vec3 x){
-    x = vec3(1.0) - exp(-x * 1.08);      // filmic-ish glow rolloff
-    return pow(x, vec3(0.4545));          // gamma
+    x = vec3(1.0) - exp(-x * 1.08);
+    return pow(x, vec3(0.4545));
   }
 
   void main(){
     vec2 frag = gl_FragCoord.xy;
     vec2 uv = frag / u_res;
-    // centred, aspect-correct, y up
     vec2 p = (frag - 0.5*u_res) / u_res.y;
     float r = length(p);
     float ang = atan(p.y, p.x);
 
     // ---- mood → luminous palette --------------------------------------
-    vec3 cJoy = vec3(1.00, 0.80, 0.42);   // warm gold
-    vec3 cCur = vec3(0.62, 0.48, 1.00);   // violet
-    vec3 cSad = vec3(0.28, 0.52, 1.00);   // deep blue
-    vec3 tint = normalize(cJoy*u_joy + cCur*u_curious + cSad*u_sad + vec3(0.02));
-    vec3 tintCool = mix(tint, cSad, 0.5*u_dream);
+    vec3 cWarm = vec3(1.00, 0.80, 0.45);
+    vec3 cViolet = vec3(0.62, 0.48, 1.00);
+    vec3 cBlue = vec3(0.30, 0.50, 1.00);
+    vec3 tint = normalize(cWarm*(0.25+0.75*u_vitality) + cViolet*0.45 + cBlue*(0.25+0.65*u_restless) + 0.02);
+    vec3 tintCool = mix(tint, cBlue, 0.5*u_dream);
 
     vec3 col = vec3(0.0);
 
@@ -572,75 +691,69 @@
     neb = pow(neb, 1.7);
     float neb2 = fbm(p*3.4 - vec2(driftT*1.3, driftT));
     vec3 bg = mix(vec3(0.005,0.007,0.017), tintCool*0.09, neb);
-    bg += tint*0.03*neb2*(0.3+0.5*u_curious);
+    bg += tint*0.03*neb2*(0.3+0.5*u_restless);
     col += bg;
 
-    // ---- the embryo core: a refractive glass orb ----------------------
-    float R = 0.30 + 0.018*u_beat*(0.6+u_joy) + 0.01*sin(u_time*0.6);
-    float z = sqrt(max(R*R - r*r, 0.0)) / max(R, 1e-4); // 0..1 fake depth
+    // ---- the embryo body: a refractive glass orb ----------------------
+    float R = 0.225 + 0.014*u_beat*(0.5+u_vitality) + 0.007*sin(u_time*0.6);
+    float z = sqrt(max(R*R - r*r, 0.0)) / max(R, 1e-4);
     float inside = smoothstep(R+0.004, R-0.004, r);
-    float fres = pow(1.0 - clamp(z,0.0,1.0), 2.5);      // rim
+    float fres = pow(1.0 - clamp(z,0.0,1.0), 2.5);
 
-    // internal caustics: swirled fbm, dispersed per channel
-    vec2 sp = p * (1.6 + 0.4*z);
-    float swirlAmt = 1.4 + 2.0*u_curious;
-    vec2 warp = vec2(cos(ang*2.0+u_time*0.4), sin(ang*2.0-u_time*0.3)) * (0.12*z);
-    float ca = 0.010 + 0.018*fres + 0.006*u_curious;    // chromatic spread
+    vec2 sp = p * (5.5 + 2.0*z);
+    vec2 warp = vec2(cos(ang*2.0+u_time*0.4), sin(ang*2.0-u_time*0.3)) * (0.35*z);
+    float ca = 0.010 + 0.018*fres + 0.006*u_restless;
     float cauR = fbm(sp + warp + vec2(u_time*0.10, 0.0) + ca);
     float cauG = fbm(sp + warp + vec2(u_time*0.10, 0.0));
     float cauB = fbm(sp + warp + vec2(u_time*0.10, 0.0) - ca);
-    vec3 caustic = vec3(cauR, cauG, cauB);
-    caustic = pow(caustic, vec3(2.4));
-    vec3 core = tint * (0.16 + 1.55*caustic) * inside * (0.30 + 0.9*z);
-    // a saturated inner glow so the mood is legible as colour, not just white
-    core += tint * inside * (0.18 + 0.5*u_joy*u_joy) * (0.4 + 0.7*z);
-    // heartbeat bloom at the very centre (kept below white so colour survives)
-    core += tint * u_beat * inside * exp(-r*8.0) * (0.30 + 0.45*u_joy);
-    // glassy rim: dispersed fresnel highlight, tinted toward the mood
+    vec3 caustic = pow(vec3(cauR, cauG, cauB), vec3(2.0));
+    vec3 core = tint * (0.10 + 1.45*caustic) * inside * (0.30 + 0.9*z);
+    core += tint * inside * (0.05 + 0.15*u_vitality) * (0.4 + 0.7*z);
+    core += tint * u_beat * inside * exp(-r*8.0) * (0.25 + 0.40*u_vitality);
     vec3 rimCol = mix(vec3(1.0,0.62,0.82), tint, 0.55)*fres*ca*24.0 + tint*fres*1.2;
     core += rimCol * inside * 0.8;
     col += core;
 
-    // outer halo / atmosphere around the orb
     float halo = exp(-max(r-R,0.0)*8.5);
-    col += tint * halo * (0.14 + 0.18*u_joy) * (0.7+0.3*u_beat);
+    col += tint * halo * (0.10 + 0.13*u_vitality) * (0.7+0.3*u_beat);
 
-    // ---- glyphs: the visual language, emitted as light ----------------
-    vec3 gcol = vec3(0.0);
-    for (int i = 0; i < 8; i++){
-      if (i >= u_glyphCount) break;
-      int idx = u_glyphHistory[i];
-      if (idx < 0 || idx >= 16) continue;
-      vec4 dna = u_glyphDNAs[idx];
-      vec3 gc = u_glyphCols[idx];
-      float fade = 1.0 - float(i)/float(max(u_glyphCount,1));
-      fade = pow(fade, 1.3);
-      // each older glyph drifts slightly — thoughts changing form
-      float t2 = u_time + float(i)*1.7;
-      vec2 drift = vec2(sin(u_time*0.13+float(i)), cos(u_time*0.11+float(i)*1.3)) * 0.012*float(i);
-      vec2 guv = p + drift;
-      float caG = 0.012 + 0.02*u_curious;
-      float fR = glyphField(guv, t2, dna, caG);
-      float fG = glyphField(guv, t2, dna, 0.0);
-      float fB = glyphField(guv, t2, dna, -caG);
-      vec3 gf = vec3(fR, fG, fB) * gc;
-      gcol += gf * fade;
+    // ---- the living signs: genomes rendered as refracted light --------
+    float disp = 0.020 + 0.020*u_restless; // chromatic dispersion
+    for (int gI = 0; gI < ${MAXG}; gI++){
+      if (gI >= u_alive) break;
+      int B = gI*16;
+      vec4 m0 = u_G[B];     // pos.xy, radius, fade
+      vec4 m1 = u_G[B+1];   // tint.rgb, timeRate
+      vec2 lp = (p - m0.xy) / m0.z;
+      float lr = length(lp);
+      if (lr > 1.6) continue;
+      float ica = lr > 1e-4 ? lp.x/lr : 1.0;
+      float isa = lr > 1e-4 ? lp.y/lr : 0.0;
+      float tt = u_time * m1.w;
+      float fR = cppn(B, lp, lr+disp, ica, isa, tt);
+      float fB = cppn(B, lp, lr-disp, ica, isa, tt);
+      float fG = 0.5*(fR+fB);
+      float lw = u_G[B+15].w;
+      vec3 line = vec3(
+        1.0 - smoothstep(0.0, lw, abs(fR)),
+        1.0 - smoothstep(0.0, lw, abs(fG)),
+        1.0 - smoothstep(0.0, lw, abs(fB))
+      );
+      float env = exp(-lr*lr*0.9);
+      vec3 gc = mix(m1.rgb, vec3(0.55,0.60,1.0), 0.35*u_dream);
+      col += line * gc * env * m0.w * (1.55 + 0.85*u_dream);
+      col += gc * 0.16 * exp(-abs(fG)*2.0) * env * m0.w; // soft aura
     }
-    // glyphs glow a little brighter while dreaming
-    col += gcol * (1.1 + 0.9*u_dream);
 
     // ---- attention: a caustic bloom that follows the cursor -----------
-    vec2 pp = (u_pointer*u_res - 0.5*u_res) / u_res.y;
-    float pd = length(p - pp);
+    float pd = length(p - u_pointer);
     float spark = u_pointerGlow * exp(-pd*pd*26.0);
     col += (tint*0.6 + vec3(0.5,0.7,1.0)*0.5) * spark * 1.3;
-    // faint ripple ring emanating from the cursor
-    col += tint * u_pointerGlow * 0.25 * smoothstep(0.02,0.0,abs(pd-0.06-0.04*sin(u_time*3.0)));
+    col += tint * u_pointerGlow * 0.25 * (1.0 - smoothstep(0.0, 0.02, abs(pd-0.06-0.04*sin(u_time*3.0))));
 
     // ---- finish -------------------------------------------------------
-    col *= 1.0 - 0.55*smoothstep(0.35, 1.35, length(p)); // vignette
+    col *= 1.0 - 0.55*smoothstep(0.35, 1.35, length(p));
     col = toneMap(col);
-    // subtle film grain to kill banding on the dark field
     col += (hash(uv*u_res + u_time)-0.5)*0.015;
     outColor = vec4(col, 1.0);
   }`;
@@ -667,161 +780,216 @@
 
   const U = name => gl.getUniformLocation(program, name);
   const u = {
-    res: U('u_res'), time: U('u_time'), joy: U('u_joy'), sad: U('u_sad'), curious: U('u_curious'),
+    res: U('u_res'), time: U('u_time'), vitality: U('u_vitality'), restless: U('u_restless'),
     dream: U('u_dream'), beat: U('u_beat'), pointer: U('u_pointer'), pointerGlow: U('u_pointerGlow'),
-    glyphCount: U('u_glyphCount'), glyphHistory: U('u_glyphHistory'), glyphDNAs: U('u_glyphDNAs'), glyphCols: U('u_glyphCols')
+    alive: U('u_alive'), G: U('u_G')
   };
   resize();
 
-  /* ---------------- HUD elements ---------------- */
+  const GDATA = new Float32Array(MAXG * 16 * 4);
+  function packOrganisms() {
+    GDATA.fill(0);
+    const n = Math.min(world.alive.length, MAXG);
+    for (let i = 0; i < n; i++) {
+      const o = world.alive[i];
+      const fb = i * 64;
+      const age = simT - o.bornT;
+      let fade = clamp(age / 2, 0, 1); // birth fade-in
+      if (o.dying) fade *= clamp(1 - (simT - o.dying) / 2.2, 0, 1);
+      fade *= 0.65 + 0.35 * clamp(o.energy / 1.4, 0, 1); // starving signs dim
+      fade *= 1 + 0.4 * o.feedGlow;                       // fed signs shine
+      GDATA[fb] = o.pos[0]; GDATA[fb+1] = o.pos[1];
+      GDATA[fb+2] = o.radius * (1 + 0.1 * o.feedGlow);
+      GDATA[fb+3] = fade;
+      GDATA[fb+4] = o.tint[0]; GDATA[fb+5] = o.tint[1]; GDATA[fb+6] = o.tint[2];
+      GDATA[fb+7] = o.timeRate;
+      for (let k = 0; k < H; k++) {
+        const nd = o.g.n[k], nb = fb + 8 + k * 8;
+        for (let w = 0; w < 8; w++) GDATA[nb + w] = nd[w];
+      }
+      for (let k = 0; k < 4; k++) GDATA[fb + 56 + k] = o.g.o[k];
+      GDATA[fb+60] = o.g.o[4]; GDATA[fb+61] = o.g.o[5];
+      GDATA[fb+62] = o.g.o[H]; GDATA[fb+63] = o.g.lw;
+    }
+    return n;
+  }
+
+  /* ---------------- pointer / attention ---------------- */
+  function toPSpace(clientX, clientY) {
+    const aspect = innerWidth / innerHeight;
+    return [ (clientX / innerWidth - 0.5) * aspect, 0.5 - clientY / innerHeight ];
+  }
+  window.addEventListener('pointermove', (e) => {
+    const [x, y] = toPSpace(e.clientX, e.clientY);
+    pointer.x = x; pointer.y = y;
+    if (started) { lastMoveT = simT; pointerGlow = Math.min(1, pointerGlow + 0.28); }
+  });
+  window.addEventListener('pointerdown', (e) => {
+    const [x, y] = toPSpace(e.clientX, e.clientY);
+    pointer.x = x; pointer.y = y;
+    if (!started) return;
+    lastMoveT = simT; pointerGlow = 1;
+    // a direct touch is a feast for the nearest sign
+    let best = null, bestD = 0.30;
+    for (const o of world.alive) {
+      if (o.dying) continue;
+      const d = Math.hypot(x - o.pos[0], y - o.pos[1]);
+      if (d < bestD) { bestD = d; best = o; }
+    }
+    if (best) { best.energy = Math.min(3, best.energy + 0.8); best.lifetimeIncome += 0.8; best.feedGlow = 1; world.totalAttention += 0.8; }
+  });
+
+  /* ---------------- HUD, bubbles, speech ---------------- */
   const el = id => document.getElementById(id);
   const panel = el('panel'), devPanel = el('dev'), thoughtsLayer = el('thoughts');
-  let dreamSmoothed = 0;
+  let dreamSmoothed = 0, speechOn = false;
+
+  function queueEvent(text, speak) { events.push({ text, speak }); }
 
   function showThought(text) {
-    if (!text) return;
     const b = document.createElement('div');
     b.className = 'thought';
     b.textContent = text;
-    b.style.left = (14 + Math.random()* Math.max(40, innerWidth*0.42)) + 'px';
-    b.style.top  = (innerHeight*0.28 + Math.random()*innerHeight*0.35) + 'px';
+    b.style.left = (14 + rnd() * Math.max(40, innerWidth * 0.42)) + 'px';
+    b.style.top  = (innerHeight * 0.28 + rnd() * innerHeight * 0.35) + 'px';
     thoughtsLayer.appendChild(b);
     requestAnimationFrame(() => b.classList.add('show'));
     setTimeout(() => b.classList.remove('show'), 5200);
     setTimeout(() => b.remove(), 7000);
   }
+  function pumpEvents() {
+    if (!started || !events.length || simT - lastBubbleT < 6) return;
+    lastBubbleT = simT;
+    const ev = events.shift();
+    showThought(ev.text);
+    if (ev.speak && speechOn && 'speechSynthesis' in window) {
+      const utter = new SpeechSynthesisUtterance(ev.text);
+      utter.pitch = 1.0 + (vitality - restless) * 0.4;
+      utter.rate = 0.95;
+      utter.volume = 0.5;
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  function fmtAge(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 90) return s + 's';
+    const m = Math.floor(s / 60);
+    if (m < 90) return m + 'm';
+    const h = Math.floor(m / 60);
+    if (h < 36) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  }
 
   function updateHUD() {
-    el('vJoy').textContent = emotion.joy.toFixed(2);
-    el('vCur').textContent = emotion.curiosity.toFixed(2);
-    el('vSad').textContent = emotion.sadness.toFixed(2);
-    el('fJoy').style.width = (emotion.joy*100).toFixed(1)+'%';
-    el('fCur').style.width = (emotion.curiosity*100).toFixed(1)+'%';
-    el('fSad').style.width = (emotion.sadness*100).toFixed(1)+'%';
-    el('modeLabel').textContent = isDreaming ? 'Dreaming' : 'Awake';
-    panel.classList.toggle('dreaming', isDreaming);
-    el('ageClock').textContent = fmtAge(Date.now() - birthTime);
+    el('vVit').textContent = vitality.toFixed(2);
+    el('vRes').textContent = restless.toFixed(2);
+    el('fVit').style.width = (vitality * 100).toFixed(1) + '%';
+    el('fRes').style.width = (restless * 100).toFixed(1) + '%';
+    el('modeLabel').textContent = dreaming ? 'Dreaming' : 'Awake';
+    panel.classList.toggle('dreaming', dreaming);
+    if (world.bornEpoch) el('ageClock').textContent = 'alive ' + fmtAge(Date.now() - world.bornEpoch);
 
-    const cur = glyphHistory.length ? glyphHistory[0] : null;
-    const exp = el('expressing');
-    if (cur != null) {
-      const name = symbolNames.get(cur) || glyphMetadata[cur]?.name || '—';
-      const verb = isDreaming ? 'Dreaming in' : 'Expressing';
-      exp.innerHTML = `${verb} <b>${name}</b><br><span style="color:var(--ink-faint)">vocabulary of ${glyphMeaning.length} symbols · ${beliefs.size} beliefs held</span>`;
+    const living = world.alive.filter(o => !o.dying);
+    if (living.length) {
+      const strongest = living.reduce((a, b) => a.energy > b.energy ? a : b);
+      const kin = strongest.parentName ? ` — child of ${strongest.parentName}` : '';
+      el('expressing').innerHTML =
+        `${dreaming ? 'Dreaming — newest' : 'Strongest'}: <b>${strongest.name}</b>${kin}<br>` +
+        `<span style="color:var(--ink-faint)">${living.length} signs alive · generation ${world.generation}</span>`;
     }
     if (devPanel.classList.contains('show')) updateDev();
   }
 
-  function fmtAge(ms){ const s = Math.floor(ms/1000); if (s<60) return s+'s'; const m=Math.floor(s/60); return m+'m '+(s%60)+'s'; }
-
-  function innerMonologue() {
-    if (glyphSentences.length === 0) return '';
-    const recentKey = glyphSentences[glyphSentences.length-1].join('-');
-    const cluster = Array.from(conceptClusters.entries()).find(([_, set]) => set.has(recentKey));
-    if (!cluster) return '';
-    const [, set] = cluster;
-    const sampled = Array.from(set).sort(()=>0.5-Math.random()).slice(0,3);
-    return sampled.map(k => k.split('-').map(i => symbolNames.get(Number(i)) || '?').join(' ')).join(' … ');
-  }
-
   function updateDev() {
-    const beliefLines = Array.from(beliefs.entries()).slice(-4)
-      .map(([k,v]) => `${k}: [${v.joy.toFixed(2)}, ${v.curiosity.toFixed(2)}, ${v.sadness.toFixed(2)}]`).join('<br>') || '<i>none yet</i>';
-    const legend = glyphMetadata.map((meta,i) => {
-      const mood = glyphMeaning[i]; if (!mood) return '';
-      const origin = meta.origin ? ' ← ['+meta.origin.join('→')+']' : '';
-      return `#${i} <b>${symbolNames.get(i)||meta.name}</b> [${mood.joy.toFixed(2)},${mood.curiosity.toFixed(2)},${mood.sadness.toFixed(2)}]${origin}`;
-    }).slice(-8).join('<br>');
-    const recent = glyphSentences[glyphSentences.length-1] || [];
-    const mono = innerMonologue();
+    const rows = world.alive.map(o => {
+      const acts = o.g.n.map(nd => ACT_NAMES[nd[0] | 0]).join(' ');
+      const w = Math.round(clamp(o.energy / 3, 0, 1) * 70);
+      const state = o.dying ? ' <i>dying</i>' : '';
+      return `<b>${o.name}</b>${state} <span class="ebar" style="width:${w}px"></span> ${o.energy.toFixed(2)}<br>` +
+             `&nbsp;&nbsp;age ${Math.round(simT - o.bornT)}s · fed ${o.lifetimeIncome.toFixed(2)} · [${acts}]`;
+    }).join('<br>');
+    let storeBytes = 0;
+    try { storeBytes = (localStorage.getItem(STORE_KEY) || '').length; } catch (e) {}
     devPanel.innerHTML =
-      `<div class="block"><h4>Desire</h4>target [${innerDesire.target.joy.toFixed(2)}, ${innerDesire.target.curiosity.toFixed(2)}, ${innerDesire.target.sadness.toFixed(2)}]<br>longing <b>${innerDesire.longing.toFixed(2)}</b></div>` +
-      `<div class="block"><h4>Beliefs (${beliefs.size})</h4>${beliefLines}</div>` +
-      `<div class="block"><h4>Symbol lexicon (${glyphMeaning.length})</h4>${legend}</div>` +
-      `<div class="block"><h4>Working phrase</h4>[${recent.map(i=>symbolNames.get(i)||i).join(' → ')}]</div>` +
-      (mono ? `<div class="block"><h4>Inner monologue</h4><i>${mono}</i></div>` : '');
+      `<div class="block"><h4>Population (energy = fitness)</h4>${rows || '<i>none</i>'}</div>` +
+      `<div class="block"><h4>Selection</h4>generation <b>${world.generation}</b> · awake births ${world.awakeBirths} · dream births ${world.dreamBirths}<br>archive (hall of fame): ${world.archive.length} genomes</div>` +
+      `<div class="block"><h4>Memory</h4>first genesis: ${world.bornEpoch ? new Date(world.bornEpoch).toLocaleString() : '—'}<br>total attention eaten: ${world.totalAttention.toFixed(1)}<br>persisted: ${storeBytes ? (storeBytes / 1024).toFixed(1) + ' KB' : 'no'}</div>` +
+      `<div class="block" style="color:var(--ink-faint)">GlassEmbryo.reset() wipes all memory</div>`;
   }
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'd' || e.key === 'D') devPanel.classList.toggle('show');
   });
 
-  /* ---------------- Main loop ---------------- */
-  let last = performance.now();
-  function render(now) {
-    const dt = Math.min(0.05, (now - last)/1000); last = now;
-    const t = now * 0.001;
+  /* ---------------- main loop ---------------- */
+  let hudAccum = 0;
+  function stepAndRender(dt) {
+    simT += dt;
+    worldStep(dt);
+    pumpEvents();
 
-    updateEmotionFromAttention();
-    updateDesireAdaptively();
-
-    pointerGlow = Math.max(0, pointerGlow - dt*1.4);
-    dreamSmoothed += ((isDreaming?1:0) - dreamSmoothed) * Math.min(1, dt*1.5);
-    const beat = Math.pow(Math.abs(Math.sin(t*1.15)), 5.0);
+    pointerGlow = Math.max(0, pointerGlow - dt * 1.4);
+    dreamSmoothed += ((dreaming ? 1 : 0) - dreamSmoothed) * Math.min(1, dt * 1.5);
+    const beat = Math.pow(Math.abs(Math.sin(simT * (0.9 + 0.5 * vitality))), 5.0);
 
     gl.uniform2f(u.res, canvas.width, canvas.height);
-    gl.uniform1f(u.time, t);
-    gl.uniform1f(u.joy, emotion.joy);
-    gl.uniform1f(u.sad, emotion.sadness);
-    gl.uniform1f(u.curious, emotion.curiosity);
+    gl.uniform1f(u.time, simT);
+    gl.uniform1f(u.vitality, vitality);
+    gl.uniform1f(u.restless, restless);
     gl.uniform1f(u.dream, dreamSmoothed);
     gl.uniform1f(u.beat, beat);
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerGlow, pointerGlow);
-
-    const count = Math.min(glyphHistory.length, 8);
-    const hist = new Int32Array(8);
-    for (let i=0;i<count;i++) hist[i] = glyphHistory[i];
-    gl.uniform1i(u.glyphCount, count);
-    gl.uniform1iv(u.glyphHistory, hist);
-
-    const dna = new Float32Array(64), cols = new Float32Array(48);
-    for (let i=0;i<Math.min(glyphMeaning.length,16);i++){
-      const d = glyphDNA[i] || glyphDNA[0];
-      dna[i*4]=d.frequency; dna[i*4+1]=d.amplitude; dna[i*4+2]=d.swirl; dna[i*4+3]=d.phase;
-      const c = glyphColor(glyphMeaning[i]);
-      cols[i*3]=c[0]; cols[i*3+1]=c[1]; cols[i*3+2]=c[2];
-    }
-    gl.uniform4fv(u.glyphDNAs, dna);
-    gl.uniform3fv(u.glyphCols, cols);
-
+    const n = packOrganisms();
+    gl.uniform1i(u.alive, n);
+    gl.uniform4fv(u.G, GDATA);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     hudAccum += dt;
-    if (hudAccum > 0.1) { updateHUD(); hudAccum = 0; }
-    requestAnimationFrame(render);
+    if (hudAccum > 0.15) { updateHUD(); hudAccum = 0; }
   }
-  let hudAccum = 0;
 
-  /* ---------------- Intro / start ---------------- */
-  let speechOn = false;
-  // draw the little lexicon glyphs in the intro with tiny SVG
-  function paintLexicon() {
-    el('lexSpiral').innerHTML = `<path d="M20 20 m0 -2 a2 2 0 1 1 -0.1 0 M20 20 m0 -6 a6 6 0 1 1 -0.1 0 M20 20 m0 -10 a10 10 0 1 1 -0.1 0" fill="none" stroke="#ffd27f" stroke-width="1.4" opacity="0.9"/>`;
-    el('lexWave').innerHTML = `<path d="M4 20 Q10 10 16 20 T28 20 T40 20" fill="none" stroke="#8fd7ff" stroke-width="1.6"/>`;
-    el('lexCross').innerHTML = `<circle cx="20" cy="20" r="11" fill="#4f8fff" opacity="0.28"/><circle cx="20" cy="20" r="6" fill="#5be0e0" opacity="0.4"/>`;
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    stepAndRender(dt);
+    requestAnimationFrame(frame);
   }
-  paintLexicon();
+
+  /* ---------------- intro / start ---------------- */
+  function paintIcons() {
+    el('icoGenome').innerHTML = `<circle cx="10" cy="12" r="3" fill="none" stroke="#ffd27f" stroke-width="1.3"/><circle cx="28" cy="9" r="3" fill="none" stroke="#b39cff" stroke-width="1.3"/><circle cx="20" cy="28" r="3" fill="none" stroke="#8fd7ff" stroke-width="1.3"/><path d="M12.5 13.8 L18 25.5 M22 25.5 L26.5 11.5 M13 11.5 L25 9.5" stroke="rgba(233,240,255,0.4)" stroke-width="1"/>`;
+    el('icoFeed').innerHTML = `<path d="M14 8 L14 26 L19 21 L23 30 L26 28.5 L22 20 L29 19.5 Z" fill="none" stroke="#ffd27f" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6 Q4 10 8 14 M6 3 Q0 10 6 17" fill="none" stroke="rgba(255,210,127,0.5)" stroke-width="1.2"/>`;
+    el('icoDream').innerHTML = `<path d="M26 6 A12 12 0 1 0 34 22 A9.5 9.5 0 0 1 26 6 Z" fill="none" stroke="#b39cff" stroke-width="1.4"/><circle cx="31" cy="8" r="1" fill="#8fd7ff"/><circle cx="35" cy="13" r="0.8" fill="#8fd7ff"/>`;
+  }
+  paintIcons();
 
   function start() {
     if (started) return;
     started = true;
-    birthTime = Date.now();
-    lastInteractionTime = Date.now();
+    lastMoveT = simT;
     el('intro').classList.add('hide');
     panel.classList.add('show');
-    // Warm up Web Speech (needs a user gesture); keep it gentle & optional.
     speechOn = 'speechSynthesis' in window;
-    setTimeout(() => speakThought(), 2500);
-    setInterval(speakThought, 11000 + Math.random()*9000);
+    if (world.loadedFromStore) {
+      queueEvent('…you came back. I remember.', true);
+    } else {
+      queueEvent('I am new. Six signs, no meanings yet. Stay a moment.', true);
+    }
   }
   el('enterBtn').addEventListener('click', start);
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !started) start(); });
 
-  requestAnimationFrame(render);
+  requestAnimationFrame(frame);
 
-  // Developer hook (parity with prior versions)
-  window.GlassEmbryo = { emotion, memory, beliefs, glyphMeaning, glyphDNA, glyphMetadata, glyphSentences, innerDesire, synthesize: maybeSynthesizeGlyph };
+  // Developer hook — the honest internals
+  window.GlassEmbryo = {
+    world, save, reset, evalGenome, descriptor,
+    stepOnce: (dt) => stepAndRender(dt),
+    get simT() { return simT; },
+    get dreaming() { return dreaming; },
+  };
   </script>
 </body>
 </html>

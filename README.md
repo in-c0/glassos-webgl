@@ -4,39 +4,30 @@
 
 > *Can an AI develop its own visual language to express its intent — without any rendering API, without predefined shapes, starting from nothing but pixels? The way a child learns to draw before it can speak?*
 
-That question is the whole project. **GlassOS** is a small digital *embryo* that begins with no UI toolkit and no vocabulary. It has an emotional state, a memory, and a single channel to the world — light on a dark field. Through your attention it learns to associate feeling with form, invents its own glyphs out of emotional necessity, remembers them, and eventually dreams in them.
+That question is the whole project. **GlassOS** is a small digital *embryo* whose signs are **alive**: each one is a genome, your attention is its food, and the language you see on screen is the result of real selection — not a script pretending to learn.
 
-Everything you see is grown, not drawn: there are no images, no sprites, no shape library. Each glyph is a few numbers of procedural "DNA" fed to a fragment shader and refracted into being like light through glass.
+## How it actually works
+
+There are no sprites, no shape library, no hand-drawn glyphs.
+
+- **Every sign is a genome.** A small CPPN-style function network — composed `sin` / `gauss` / `tanh` / `triangle` nodes over local space and time. The network's zero-contour, rendered as refracted light with chromatic dispersion, *is* the sign. The expressive space is the network's function space: open-ended, evolvable, unowned.
+- **Attention is the fitness function.** Cursor dwell near a sign feeds *that sign* (per-artifact credit assignment). Fed signs hold energy; energy-weighted parents breed the next generation, with mutation and crossover. Ignored signs starve, fade, and die. Touching a sign directly is a feast.
+- **Left alone, it dreams — by novelty search.** After ~12 seconds without attention, selection changes regime: instead of chasing reward, the system breeds candidates from its archive and keeps whichever is most *unfamiliar* (distance in phenotype space against everything it has ever kept). Awake, it learns what you like; asleep, it imagines. When you return, its dreams face selection.
+- **It remembers.** The living population, the hall-of-fame archive, and the generation count persist in `localStorage`. Close the tab, come back tomorrow — same creature, older, shaped by everyone who has visited that browser.
+
+The two meters in the HUD are honest: **Vitality** is smoothed attention income; **Restlessness** rises when income has been scarce, and drives up mutation.
 
 ## Try it
 
-- **Move your cursor** to give it attention — it brightens, warms, and marks the moment with a glyph.
-- **Leave it alone for ~10 seconds** and it starts to *dream*, replaying and distorting its memories.
-- It occasionally **speaks its thoughts** aloud (Web Speech) and in text bubbles.
-- Press **`D`** to open the developer panel and watch its beliefs, symbol lexicon, desires, and inner monologue evolve in real time.
-
-Its first three feelings map to its first three signs — the seed of a private language:
-
-| sign | feeling |
-|------|---------|
-| a spiral | *"I'm dreaming"* |
-| a wave | *"I'm curious"* |
-| a fading field of blue | *"I remember"* |
-
-## What's under the surface
-
-The presentation layer is new (Phase 3.0, "The Glass Vessel"), but the mind inside it has been growing across many phases:
-
-- **Emotion → expression.** Joy, curiosity, and sadness drive both the palette and which glyph the embryo reaches for.
-- **Memory & dreams.** When ignored, it re-lives past emotional states as a drifting dream pulse.
-- **Emergent symbols.** Repeated three-glyph "phrases" become *beliefs*; when no belief satisfies its current feeling, it **synthesizes a brand-new glyph** with its own procedural DNA, names it, and adds it to its vocabulary.
-- **Desire.** It holds an abstract goal — a feeling it longs for — and its longing rises and falls as it drifts toward or away from that goal.
-
-The renderer treats each glyph as *emitted light*, split per-colour-channel so it disperses like a rainbow through glass — delivering the project's namesake: an interface made of glass and light.
+- **Move your cursor** near a sign to feed it. Watch it brighten and swell.
+- **Click a sign** to feast it.
+- **Stop moving** for ~12 seconds and it starts to dream — new, stranger forms replace the dim ones.
+- Press **`D`** for the developer panel: per-sign energy, lineage, activation genes, the archive, and the generation log — selection happening in real numbers.
+- `GlassEmbryo.reset()` in the console wipes its memory and starts a new genesis.
 
 ## Run locally
 
-It's a single self-contained HTML file — no build step, no dependencies.
+A single self-contained HTML file — no build step, no dependencies.
 
 ```bash
 # any static server works; for example:
@@ -46,10 +37,9 @@ python -m http.server 8000
 
 Needs a browser with **WebGL2** (recent Chrome, Edge, Firefox, or Safari).
 
-## Files
+## History
 
-- [`index.html`](index.html) — the current demo (Phase 3.0).
-- [`glassos.html`](glassos.html) — the earlier prototype, kept for history.
+Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. The old prototypes live in git history.
 
 ---
 
