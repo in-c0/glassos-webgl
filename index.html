@@ -90,24 +90,82 @@
       background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
     }
 
-    /* ---------- Developer overlay ---------- */
-    #dev {
-      position: fixed; top: 22px; right: 24px; z-index: 5;
-      width: 316px; max-height: 78vh; overflow-y: auto; padding: 15px 17px;
-      font-family: var(--mono); font-size: 10.5px; line-height: 1.6; color: var(--ink-dim);
-      display: none;
+    /* ---------- Shell: surfaces of glass ---------- */
+    #shell { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+    #shell.frost .win { opacity: 0.5; filter: blur(1.5px) saturate(0.75); }
+    .win {
+      position: absolute; pointer-events: auto; display: flex; flex-direction: column;
+      min-width: 176px; min-height: 96px;
+      animation: winIn .45s cubic-bezier(.2,.9,.25,1);
+      transition: opacity .8s ease, filter .8s ease;
     }
-    #dev.show { display: block; }
-    #dev h4 { margin: 0 0 6px; font-family: var(--sans); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); }
-    #dev .block { margin-bottom: 14px; }
-    #dev b { color: var(--ink); }
-    #dev i { color: #9b8cff; font-style: normal; }
-    #dev .ebar { display: inline-block; height: 6px; background: linear-gradient(90deg,#ffd27f,#ff9ecb); border-radius: 3px; vertical-align: middle; }
-    #dev::-webkit-scrollbar { width: 5px; }
-    #dev::-webkit-scrollbar-thumb { background: rgba(150,180,255,0.2); border-radius: 3px; }
+    @keyframes winIn { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+    .win-t {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px 8px; cursor: grab; user-select: none;
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .win-t:active { cursor: grabbing; }
+    .win-x {
+      background: none; border: none; color: var(--ink-faint); cursor: pointer;
+      font-size: 15px; line-height: 1; padding: 0 2px; margin-left: 10px;
+    }
+    .win-x:hover { color: var(--ink); }
+    .win-b { flex: 1; padding: 11px 14px 12px; font-size: 12px; line-height: 1.55; color: var(--ink-dim); overflow: auto; }
+    .win-b::-webkit-scrollbar { width: 5px; }
+    .win-b::-webkit-scrollbar-thumb { background: rgba(150,180,255,0.2); border-radius: 3px; }
+    .win-r { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize;
+      border-right: 2px solid rgba(150,180,255,0.25); border-bottom: 2px solid rgba(150,180,255,0.25); border-radius: 0 0 14px 0; }
+    .win h4 { margin: 0 0 6px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+    .win .block { margin-bottom: 13px; font-family: var(--mono); font-size: 10.5px; line-height: 1.6; }
+    .win b { color: var(--ink); font-weight: 600; }
+    .win i { color: #9b8cff; font-style: normal; }
+    .win .ebar { display: inline-block; height: 6px; background: linear-gradient(90deg,#ffd27f,#ff9ecb); border-radius: 3px; vertical-align: middle; }
+    .win .big { font-size: 34px; font-weight: 200; letter-spacing: 0.04em; color: var(--ink); line-height: 1.15; }
+    .win .dim { color: var(--ink-faint); }
+    .win a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.15); }
+    .win a:hover { color: var(--ink); }
+    .win textarea {
+      width: 100%; height: 100%; resize: none; background: transparent; border: none; outline: none;
+      color: var(--ink); font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+    }
+    .win .btnrow { display: flex; gap: 8px; margin-top: 10px; }
+    .win .btnrow button {
+      font-family: var(--sans); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-dim); background: rgba(150,180,255,0.07); border: 1px solid rgba(150,180,255,0.25);
+      border-radius: 20px; padding: 5px 14px; cursor: pointer;
+    }
+    .win .btnrow button:hover { color: var(--ink); border-color: rgba(180,200,255,0.5); }
+
+    /* ---------- Command palette ---------- */
+    #palette {
+      position: fixed; inset: 0; z-index: 25; display: none;
+      align-items: flex-start; justify-content: center; padding-top: 20vh;
+      background: rgba(5,6,12,0.45);
+    }
+    #palette.show { display: flex; }
+    #palette .box { width: min(560px, 92vw); padding: 6px 0 8px; }
+    #palInput {
+      width: 100%; background: transparent; border: none; outline: none;
+      padding: 16px 20px 12px; color: var(--ink); font-family: var(--sans);
+      font-size: 19px; font-weight: 300; letter-spacing: 0.02em;
+    }
+    #palInput::placeholder { color: var(--ink-faint); }
+    #palHints { padding: 4px 8px 4px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .pal-row { display: flex; gap: 12px; align-items: baseline; padding: 7px 14px; border-radius: 10px; cursor: pointer; font-size: 12px; color: var(--ink-dim); }
+    .pal-row b { color: var(--ink); font-family: var(--mono); font-size: 12px; }
+    .pal-row:hover, .pal-row.sel { background: rgba(150,180,255,0.09); }
+
+    #conjureBtn {
+      position: fixed; right: 24px; bottom: 22px; z-index: 7;
+      font-family: var(--sans); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--ink-faint); padding: 9px 16px; cursor: pointer; border-radius: 30px;
+    }
+    #conjureBtn:hover { color: var(--ink); box-shadow: 0 0 24px rgba(140,160,255,0.25); }
 
     /* ---------- Thought bubbles ---------- */
-    #thoughts { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+    #thoughts { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
     .thought {
       position: absolute; max-width: 300px; padding: 10px 15px;
       font-size: 13px; font-style: italic; letter-spacing: 0.01em; line-height: 1.45;
@@ -157,9 +215,10 @@
     #intro .foot a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.2); }
 
     @media (max-width: 640px) {
-      #dev { display: none !important; }
       #panel { width: calc(100vw - 48px); bottom: 16px; left: 16px; }
       #brand { top: 16px; left: 16px; }
+      .win { max-width: calc(100vw - 32px); }
+      #conjureBtn { bottom: auto; top: 20px; right: 16px; }
     }
   </style>
 </head>
@@ -170,7 +229,7 @@
     <div class="mark"></div>
     <div class="txt">
       <div class="name"><b>Glass</b>OS</div>
-      <div class="sub">Embryo · v4</div>
+      <div class="sub">Shell · v5</div>
     </div>
   </div>
 
@@ -184,15 +243,23 @@
     <div class="meter"><div class="lab"><span>Vitality</span><span class="val" id="vVit">0.00</span></div><div class="bar"><div class="fill vit" id="fVit"></div></div></div>
     <div class="meter"><div class="lab"><span>Restlessness</span><span class="val" id="vRes">0.00</span></div><div class="bar"><div class="fill res" id="fRes"></div></div></div>
     <div class="expressing" id="expressing">Waiting to be seen&hellip;</div>
-    <div class="hint">linger near a sign to feed it · leave, and it dreams · press <kbd>D</kbd> for its inner life</div>
+    <div class="hint">linger near a sign to feed it · <kbd>⌘K</kbd> conjures glass · <kbd>D</kbd> vitals</div>
   </div>
 
-  <div id="dev" class="glass"></div>
+  <div id="shell"></div>
+  <div id="conjureBtn" class="glass">⌘K · conjure</div>
+
+  <div id="palette">
+    <div class="box glass">
+      <input id="palInput" type="text" placeholder="conjure a surface of glass… (clock · weather tokyo · notes · timer 5 · github · hn · vitals)" autocomplete="off" spellcheck="false" />
+      <div id="palHints"></div>
+    </div>
+  </div>
 
   <div id="intro">
     <div class="halo"></div>
     <h1><b>Glass</b>OS</h1>
-    <p class="tag">A digital embryo whose signs are <em>alive</em>. Each one is a small genome of light &mdash; nothing here is drawn by hand. Your attention is their food: the forms you linger on survive and breed; the rest starve. Leave it alone, and it dreams new forms to show you when you return. It remembers, across visits.</p>
+    <p class="tag">A digital embryo whose signs are <em>alive</em>. Each one is a small genome of light &mdash; nothing here is drawn by hand. Your attention is their food: the forms you linger on survive and breed; the rest starve. Leave it alone, and it dreams new forms to show you when you return. It remembers, across visits. And it is also a desk: press <b>⌘K</b> and conjure surfaces of glass over the field where it lives.</p>
     <div class="lex">
       <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoGenome"></svg><span>each sign is a genome &mdash; evolved, not drawn</span></div>
       <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoFeed"></svg><span>your attention is food &mdash; linger, and it lives</span></div>
@@ -226,6 +293,7 @@
 
   let DPR = Math.min(window.devicePixelRatio || 1, 1.75);
   function resize() {
+    if (innerWidth < 100 || innerHeight < 100) return; // minimized/embedded collapse — keep last good size
     DPR = Math.min(window.devicePixelRatio || 1, 1.75);
     canvas.width = Math.floor(innerWidth * DPR);
     canvas.height = Math.floor(innerHeight * DPR);
@@ -605,7 +673,7 @@
   }
 
   if (!load()) genesis();
-  window.addEventListener('beforeunload', () => { if (started) save(); });
+  window.addEventListener('beforeunload', () => { if (started) { save(); saveShellNow(); } });
 
   /* ============================================================
      RENDERER — the glass vessel
@@ -829,6 +897,7 @@
     pointer.x = x; pointer.y = y;
     if (!started) return;
     lastMoveT = simT; pointerGlow = 1;
+    if (e.target.closest('.win, #palette, #panel, #brand, #conjureBtn')) return; // touching glass, not feeding
     // a direct touch is a feast for the nearest sign
     let best = null, bestD = 0.30;
     for (const o of world.alive) {
@@ -841,7 +910,7 @@
 
   /* ---------------- HUD, bubbles, speech ---------------- */
   const el = id => document.getElementById(id);
-  const panel = el('panel'), devPanel = el('dev'), thoughtsLayer = el('thoughts');
+  const panel = el('panel'), thoughtsLayer = el('thoughts');
   let dreamSmoothed = 0, speechOn = false;
 
   function queueEvent(text, speak) { events.push({ text, speak }); }
@@ -888,6 +957,7 @@
     el('fRes').style.width = (restless * 100).toFixed(1) + '%';
     el('modeLabel').textContent = dreaming ? 'Dreaming' : 'Awake';
     panel.classList.toggle('dreaming', dreaming);
+    shellEl.classList.toggle('frost', dreaming); // dreams frost the glass
     if (world.bornEpoch) el('ageClock').textContent = 'alive ' + fmtAge(Date.now() - world.bornEpoch);
 
     const living = world.alive.filter(o => !o.dying);
@@ -898,10 +968,11 @@
         `${dreaming ? 'Dreaming — newest' : 'Strongest'}: <b>${strongest.name}</b>${kin}<br>` +
         `<span style="color:var(--ink-faint)">${living.length} signs alive · generation ${world.generation}</span>`;
     }
-    if (devPanel.classList.contains('show')) updateDev();
+    if (vitalsBody) updateDev();
   }
 
   function updateDev() {
+    if (!vitalsBody) return;
     const rows = world.alive.map(o => {
       const acts = o.g.n.map(nd => ACT_NAMES[nd[0] | 0]).join(' ');
       const w = Math.round(clamp(o.energy / 3, 0, 1) * 70);
@@ -911,16 +982,14 @@
     }).join('<br>');
     let storeBytes = 0;
     try { storeBytes = (localStorage.getItem(STORE_KEY) || '').length; } catch (e) {}
-    devPanel.innerHTML =
+    vitalsBody.innerHTML =
       `<div class="block"><h4>Population (energy = fitness)</h4>${rows || '<i>none</i>'}</div>` +
       `<div class="block"><h4>Selection</h4>generation <b>${world.generation}</b> · awake births ${world.awakeBirths} · dream births ${world.dreamBirths}<br>archive (hall of fame): ${world.archive.length} genomes</div>` +
       `<div class="block"><h4>Memory</h4>first genesis: ${world.bornEpoch ? new Date(world.bornEpoch).toLocaleString() : '—'}<br>total attention eaten: ${world.totalAttention.toFixed(1)}<br>persisted: ${storeBytes ? (storeBytes / 1024).toFixed(1) + ' KB' : 'no'}</div>` +
       `<div class="block" style="color:var(--ink-faint)">GlassEmbryo.reset() wipes all memory</div>`;
   }
 
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'd' || e.key === 'D') devPanel.classList.toggle('show');
-  });
+  // keyboard shortcuts live in the shell section below
 
   /* ---------------- main loop ---------------- */
   let hudAccum = 0;
@@ -953,6 +1022,7 @@
   let last = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    fpsEma += (1 / Math.max(dt, 1e-3) - fpsEma) * 0.05;
     stepAndRender(dt);
     requestAnimationFrame(frame);
   }
@@ -972,14 +1042,394 @@
     el('intro').classList.add('hide');
     panel.classList.add('show');
     speechOn = 'speechSynthesis' in window;
+    // her first note for this OS: "First we start with Good Morning"
+    const h = new Date().getHours();
+    queueEvent(h < 12 ? 'Good morning.' : h < 18 ? 'Good afternoon.' : 'Good evening.', true);
     if (world.loadedFromStore) {
       queueEvent('…you came back. I remember.', true);
     } else {
       queueEvent('I am new. Six signs, no meanings yet. Stay a moment.', true);
     }
+    restoreShell();
   }
   el('enterBtn').addEventListener('click', start);
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !started) start(); });
+
+  /* ============================================================
+     SHELL — surfaces of glass (Phase 5, a desktop-only Jarvis)
+
+     Every window begins as intent: {type, props}. The registry
+     realizes intent into a glass surface over the light-field.
+     The compositor doesn't care who is speaking — today it's a
+     command palette; tomorrow an LLM could emit the same specs.
+     Keyboard and mouse only, by design: no camera, no gestures,
+     no extra points of failure.
+     ============================================================ */
+  const shellEl = el('shell');
+  const SHELL_KEY = 'glassos-shell-v1';
+  const NOTES_KEY = 'glassos-notes-v1';
+  const wins = [];
+  let zTop = 10, vitalsBody = null, saveShellTimer = 0, fpsEma = 60;
+
+  const fmt2 = n => String(n).padStart(2, '0');
+  // a degenerate viewport (minimized pane, collapsing window) must never
+  // corrupt geometry or the saved layout
+  const viewOk = () => innerWidth >= 200 && innerHeight >= 200;
+  const vw = () => Math.max(innerWidth, 320);
+  const vh = () => Math.max(innerHeight, 240);
+  const wmoMap = (c) => {
+    if (c === 0) return ['☀', 'clear sky'];
+    if (c <= 2) return ['⛅', 'partly cloudy'];
+    if (c === 3) return ['☁', 'overcast'];
+    if (c === 45 || c === 48) return ['🌫', 'fog'];
+    if (c <= 57) return ['🌦', 'drizzle'];
+    if (c <= 67) return ['🌧', 'rain'];
+    if (c <= 77) return ['❄', 'snow'];
+    if (c <= 82) return ['🌧', 'showers'];
+    if (c <= 86) return ['❄', 'snow showers'];
+    return ['⛈', 'thunderstorm'];
+  };
+  const guessCity = () => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace(/_/g, ' '); }
+    catch (e) { return 'Sydney'; }
+  };
+  function chime() {
+    try {
+      const A = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = A.currentTime;
+      [523.25, 659.25, 783.99].forEach((f, i) => {
+        const o = A.createOscillator(), g = A.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.08, t0 + i * 0.12 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.12 + 0.5);
+        o.connect(g).connect(A.destination);
+        o.start(t0 + i * 0.12); o.stop(t0 + i * 0.12 + 0.55);
+      });
+    } catch (e) {}
+  }
+
+  const REGISTRY = {
+    clock: {
+      title: 'Clock', alias: ['time'], desc: 'local time and date', w: 236, h: 128, single: true,
+      mount(body) {
+        const t = () => {
+          const d = new Date();
+          body.innerHTML =
+            `<div class="big">${fmt2(d.getHours())}:${fmt2(d.getMinutes())}<span class="dim" style="font-size:16px"> ${fmt2(d.getSeconds())}</span></div>` +
+            `<div class="dim" style="margin-top:6px">${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>`;
+        };
+        t(); return { tick: t };
+      }
+    },
+    weather: {
+      title: 'Weather', alias: ['w', 'meteo'], desc: 'weather [city] — live via Open-Meteo', w: 252, h: 172, single: true,
+      mount(body, props) {
+        body.innerHTML = '<div class="dim">reading the sky…</div>';
+        (async () => {
+          try {
+            const city = (props.city || '').trim() || guessCity();
+            const g = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(city))).json();
+            const loc = g.results && g.results[0];
+            if (!loc) { body.innerHTML = `<div class="dim">I can't find “${city}.”</div>`; return; }
+            const wx = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m`)).json();
+            const c = wx.current;
+            const [ico, txt] = wmoMap(c.weather_code);
+            body.innerHTML =
+              `<div class="dim" style="letter-spacing:.14em;text-transform:uppercase;font-size:10px">${loc.name}${loc.country_code ? ' · ' + loc.country_code : ''}</div>` +
+              `<div class="big" style="margin-top:4px">${Math.round(c.temperature_2m)}°<span style="font-size:18px"> ${ico}</span></div>` +
+              `<div class="dim" style="margin-top:5px">${txt} · feels ${Math.round(c.apparent_temperature)}°<br>wind ${Math.round(c.wind_speed_10m)} km/h · humidity ${c.relative_humidity_2m}%</div>`;
+          } catch (e) { body.innerHTML = '<div class="dim">the sky is unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    notes: {
+      title: 'Notes', alias: ['note', 'todo'], desc: 'a persistent scrap of thought', w: 272, h: 214, single: true,
+      mount(body) {
+        const ta = document.createElement('textarea');
+        ta.placeholder = 'thoughts stay here, across visits…';
+        try { ta.value = localStorage.getItem(NOTES_KEY) || ''; } catch (e) {}
+        let deb;
+        ta.addEventListener('input', () => {
+          clearTimeout(deb);
+          deb = setTimeout(() => { try { localStorage.setItem(NOTES_KEY, ta.value); } catch (e) {} }, 400);
+        });
+        body.style.padding = '6px 10px 10px';
+        body.appendChild(ta);
+      }
+    },
+    timer: {
+      title: 'Timer', alias: ['t', 'countdown'], desc: 'timer [minutes] — chimes when done', w: 222, h: 152,
+      mount(body, props) {
+        const total = Math.max(0.1, parseFloat(props.min) || 5) * 60;
+        let leftS = total, running = true, done = false;
+        const disp = document.createElement('div'); disp.className = 'big';
+        const row = document.createElement('div'); row.className = 'btnrow';
+        const bPause = document.createElement('button'); bPause.textContent = 'pause';
+        const bReset = document.createElement('button'); bReset.textContent = 'reset';
+        bPause.onclick = () => { running = !running; bPause.textContent = running ? 'pause' : 'resume'; };
+        bReset.onclick = () => { leftS = total; done = false; running = true; bPause.textContent = 'pause'; paint(); };
+        row.append(bPause, bReset);
+        const paint = () => {
+          const s = Math.max(0, Math.ceil(leftS));
+          disp.textContent = `${fmt2(Math.floor(s / 60))}:${fmt2(s % 60)}`;
+          disp.style.color = done ? '#ffd27f' : '';
+        };
+        paint(); body.append(disp, row);
+        return {
+          tick() {
+            if (!running || done) return;
+            leftS -= 1;
+            if (leftS <= 0) {
+              done = true; running = false; paint(); chime();
+              queueEvent(`Your ${Math.round(total / 60)}-minute timer has ended.`, true);
+            } else paint();
+          }
+        };
+      }
+    },
+    github: {
+      title: 'GitHub', alias: ['gh', 'repo'], desc: 'github [owner/repo] — live repo pulse', w: 272, h: 176, single: true,
+      mount(body, props) {
+        const repo = (props.repo || '').trim() || 'in-c0/glassos-webgl';
+        body.innerHTML = '<div class="dim">asking GitHub…</div>';
+        (async () => {
+          try {
+            const r = await fetch('https://api.github.com/repos/' + repo);
+            if (!r.ok) { body.innerHTML = `<div class="dim">${r.status === 403 ? 'rate-limited — try again later' : 'no such repo “' + repo + '”'}</div>`; return; }
+            const d = await r.json();
+            let commitLine = '';
+            try {
+              const cr = await (await fetch(`https://api.github.com/repos/${repo}/commits?per_page=1`)).json();
+              const c0 = cr[0];
+              if (c0) commitLine = `<div class="dim" style="margin-top:8px">“${c0.commit.message.split('\n')[0].slice(0, 46)}”<br>${new Date(c0.commit.author.date).toLocaleDateString()}</div>`;
+            } catch (e) {}
+            body.innerHTML =
+              `<div><a href="${d.html_url}" target="_blank" rel="noopener"><b>${d.full_name}</b></a></div>` +
+              `<div style="margin-top:8px;font-size:15px;color:var(--ink)">★ ${d.stargazers_count} &nbsp; ⑂ ${d.forks_count} &nbsp; ◉ ${d.subscribers_count ?? d.watchers_count}</div>` +
+              commitLine;
+          } catch (e) { body.innerHTML = '<div class="dim">GitHub unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    hn: {
+      title: 'Frontier', alias: ['news', 'hacker'], desc: 'live front page of Hacker News', w: 332, h: 252, single: true,
+      mount(body) {
+        body.innerHTML = '<div class="dim">listening to the frontier…</div>';
+        (async () => {
+          try {
+            const d = await (await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=8')).json();
+            body.innerHTML = d.hits.map(h =>
+              `<div style="margin-bottom:8px"><a href="${h.url || ('https://news.ycombinator.com/item?id=' + h.objectID)}" target="_blank" rel="noopener">${h.title}</a> <span class="dim" style="font-size:10px">▲${h.points}</span></div>`
+            ).join('') || '<div class="dim">silence.</div>';
+          } catch (e) { body.innerHTML = '<div class="dim">the frontier is unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    vitals: {
+      title: 'Vitals', alias: ['embryo', 'soul', 'dev'], desc: "the creature's inner life, live", w: 332, h: 336, single: true,
+      mount(body) { vitalsBody = body; updateDev(); return { cleanup() { vitalsBody = null; } }; }
+    },
+    perf: {
+      title: 'Pulse', alias: ['fps', 'system'], desc: 'render pulse of this machine', w: 232, h: 154, single: true,
+      mount(body) {
+        const t = () => {
+          const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) + ' MB heap' : 'heap n/a';
+          body.innerHTML =
+            `<div class="big">${Math.round(fpsEma)}<span class="dim" style="font-size:15px"> fps</span></div>` +
+            `<div class="dim" style="margin-top:6px">${canvas.width}×${canvas.height} @ ${DPR.toFixed(2)}×<br>${mem}<br>${world.alive.length} signs · gen ${world.generation}</div>`;
+        };
+        t(); return { tick: t };
+      }
+    },
+    help: {
+      title: 'Help', alias: ['?', 'about'], desc: 'what this desk can do', w: 340, h: 320, single: true,
+      mount(body) {
+        const rows = Object.entries(REGISTRY).map(([k, d]) =>
+          `<div style="margin-bottom:6px"><b style="font-family:var(--mono)">${k}</b> <span class="dim">— ${d.desc}</span></div>`).join('');
+        body.innerHTML =
+          `<div class="block"><h4>Conjure</h4><span class="dim"><b>⌘K</b> / <b>Ctrl K</b> / <b>/</b> opens the palette. Type an intent; Enter realizes it as glass.</span></div>` +
+          `<div class="block"><h4>Surfaces</h4>${rows}</div>` +
+          `<div class="block"><h4>The creature</h4><span class="dim">Linger near a sign to feed it; click it to feast it. Stop for 12s and it dreams — the glass frosts over. <b>D</b> toggles vitals. It remembers you.</span></div>` +
+          `<div class="dim"><a href="https://github.com/in-c0/glassos-webgl" target="_blank" rel="noopener">source</a> · by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a></div>`;
+      }
+    },
+  };
+
+  /* ---------------- window manager ---------------- */
+  function applyGeom(w) {
+    w.el.style.left = w.x + 'px'; w.el.style.top = w.y + 'px';
+    w.el.style.width = w.w + 'px'; w.el.style.height = w.h + 'px';
+  }
+  function focusWin(w) { w.z = ++zTop; w.el.style.zIndex = w.z; }
+  function spawnPos(pw, ph) {
+    const pad = 24;
+    let x = vw() - pw - pad, y = 84;
+    for (let k = 0; k < 24; k++) {
+      if (!wins.some(w => Math.abs(w.x - x) < 30 && Math.abs(w.y - y) < 30)) break;
+      x -= 34; y += 34;
+      if (y + ph > vh() - 60) { y = 84; x -= pw * 0.5; }
+      if (x < pad) x = vw() - pw - pad - 60;
+    }
+    return [Math.max(pad, x), Math.max(60, Math.min(y, vh() - ph - 40))];
+  }
+
+  function openPanel(type, props = {}, geom = null, silent = false) {
+    const def = REGISTRY[type];
+    if (!def) return null;
+    if (def.single) {
+      const ex = wins.find(w => w.type === type);
+      if (ex) {
+        if (Object.keys(props).length) closePanel(ex, true); // re-conjure with new props
+        else { focusWin(ex); return ex; }
+      }
+    }
+    const root = document.createElement('div');
+    root.className = 'win glass';
+    root.innerHTML = `<div class="win-t"><span>${def.title}</span><button class="win-x" title="close">×</button></div><div class="win-b"></div><div class="win-r"></div>`;
+    const body = root.querySelector('.win-b');
+    const w = { type, props, el: root, body, x: 0, y: 0, w: geom?.w || def.w, h: geom?.h || def.h, z: ++zTop };
+    w.w = Math.min(w.w, vw() - 40); w.h = Math.min(w.h, vh() - 60);
+    [w.x, w.y] = geom ? [geom.x, geom.y] : spawnPos(w.w, w.h);
+    w.x = clamp(w.x, 60 - w.w, vw() - 60); w.y = clamp(w.y, 8, vh() - 40);
+    root.style.zIndex = w.z;
+    applyGeom(w);
+    shellEl.appendChild(root);
+    const api = def.mount(body, props) || {};
+    w.tick = api.tick; w.cleanup = api.cleanup;
+    root.addEventListener('pointerdown', () => focusWin(w));
+    root.querySelector('.win-x').addEventListener('click', () => closePanel(w));
+    const tbar = root.querySelector('.win-t');
+    tbar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.win-x')) return;
+      e.preventDefault();
+      const sx = e.clientX - w.x, sy = e.clientY - w.y;
+      const move = ev => { w.x = clamp(ev.clientX - sx, 60 - w.w, vw() - 60); w.y = clamp(ev.clientY - sy, 8, vh() - 40); applyGeom(w); };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); saveShell(); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
+    root.querySelector('.win-r').addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const sx = e.clientX, sy = e.clientY, ow = w.w, oh = w.h;
+      const move = ev => { w.w = Math.max(176, ow + ev.clientX - sx); w.h = Math.max(96, oh + ev.clientY - sy); applyGeom(w); };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); saveShell(); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
+    wins.push(w);
+    if (!silent) saveShell();
+    return w;
+  }
+
+  function closePanel(w, silent = false) {
+    try { w.cleanup && w.cleanup(); } catch (e) {}
+    w.el.remove();
+    const i = wins.indexOf(w);
+    if (i >= 0) wins.splice(i, 1);
+    if (!silent) saveShell();
+  }
+
+  function saveShellNow() {
+    if (!viewOk()) return; // never persist a layout computed against a collapsed viewport
+    try {
+      localStorage.setItem(SHELL_KEY, JSON.stringify({
+        v: 1,
+        panels: wins.slice().sort((a, b) => a.z - b.z).map(w => ({
+          t: w.type, p: w.props, x: Math.round(w.x), y: Math.round(w.y), w: Math.round(w.w), h: Math.round(w.h)
+        }))
+      }));
+    } catch (e) {}
+  }
+  function saveShell() { clearTimeout(saveShellTimer); saveShellTimer = setTimeout(saveShellNow, 600); }
+
+  function restoreShell() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(SHELL_KEY) || 'null'); } catch (e) {}
+    if (stored && stored.v === 1 && Array.isArray(stored.panels) && stored.panels.length) {
+      for (const p of stored.panels) openPanel(p.t, p.p || {}, { x: p.x, y: p.y, w: p.w, h: p.h }, true);
+    } else {
+      openPanel('clock', {}, null, true);
+      openPanel('weather', {}, null, true);
+      openPanel('vitals', {}, { x: 24, y: 84, w: 332, h: 336 }, true);
+    }
+  }
+
+  setInterval(() => { for (const w of wins) { try { w.tick && w.tick(); } catch (e) {} } }, 1000);
+
+  /* ---------------- command palette ---------------- */
+  const paletteEl = el('palette'), palInput = el('palInput'), palHints = el('palHints');
+  function paletteOpen() {
+    if (!started) return;
+    paletteEl.classList.add('show');
+    palInput.value = ''; renderHints('');
+    setTimeout(() => palInput.focus(), 30);
+  }
+  function paletteClose() { paletteEl.classList.remove('show'); palInput.blur(); }
+  function matchCmd(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return null;
+    const sp = q.split(/\s+/), head = sp[0], arg = sp.slice(1).join(' ');
+    const keys = Object.keys(REGISTRY);
+    let k = keys.find(k => k === head || (REGISTRY[k].alias || []).includes(head));
+    if (!k) k = keys.find(k => k.startsWith(head) || (REGISTRY[k].alias || []).some(a => a.startsWith(head)));
+    return k ? { k, arg } : null;
+  }
+  function argProps(k, arg) {
+    if (!arg) return {};
+    if (k === 'weather') return { city: arg };
+    if (k === 'github') return { repo: arg };
+    if (k === 'timer') return { min: parseFloat(arg) || 5 };
+    return {};
+  }
+  function renderHints(q) {
+    const m = matchCmd(q);
+    const head = q.trim().toLowerCase().split(/\s+/)[0] || '';
+    const rows = Object.entries(REGISTRY)
+      .filter(([k, d]) => !head || (m && m.k === k) || k.startsWith(head) || (d.alias || []).some(a => a.startsWith(head)))
+      .slice(0, 8)
+      .map(([k, d]) => `<div class="pal-row${m && m.k === k ? ' sel' : ''}" data-k="${k}"><b>${k}</b><span>${d.desc}</span></div>`)
+      .join('');
+    palHints.innerHTML = rows || '<div class="pal-row"><span class="dim">no surface answers to that — try “help”</span></div>';
+  }
+  function paletteExec() {
+    const m = matchCmd(palInput.value);
+    if (!m) { renderHints(palInput.value); return; }
+    openPanel(m.k, argProps(m.k, m.arg));
+    paletteClose();
+  }
+  palInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    lastMoveT = simT;
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); paletteClose(); return; }
+    if (e.key === 'Enter') paletteExec();
+    else if (e.key === 'Escape') paletteClose();
+  });
+  palInput.addEventListener('input', () => renderHints(palInput.value));
+  palHints.addEventListener('click', (e) => {
+    const row = e.target.closest('.pal-row');
+    if (!row || !row.dataset.k) return;
+    const m = matchCmd(palInput.value);
+    openPanel(row.dataset.k, m && m.k === row.dataset.k ? argProps(m.k, m.arg) : {});
+    paletteClose();
+  });
+  paletteEl.addEventListener('pointerdown', (e) => { if (e.target === paletteEl) paletteClose(); });
+  el('conjureBtn').addEventListener('click', paletteOpen);
+
+  /* ---------------- global shortcuts ---------------- */
+  window.addEventListener('keydown', (e) => {
+    if (started) lastMoveT = simT; // presence: a typing hand is a present hand
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      paletteEl.classList.contains('show') ? paletteClose() : paletteOpen();
+      return;
+    }
+    if (e.key === 'Escape') { paletteClose(); return; }
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    if (e.key === '/') { e.preventDefault(); paletteOpen(); return; }
+    if (e.key === 'd' || e.key === 'D') {
+      const ex = wins.find(w => w.type === 'vitals');
+      ex ? closePanel(ex) : openPanel('vitals');
+    }
+  });
 
   requestAnimationFrame(frame);
 
@@ -989,6 +1439,7 @@
     stepOnce: (dt) => stepAndRender(dt),
     get simT() { return simT; },
     get dreaming() { return dreaming; },
+    shell: { open: openPanel, close: closePanel, wins, paletteOpen, paletteClose, registry: REGISTRY },
   };
   </script>
 </body>

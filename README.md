@@ -21,9 +21,34 @@ The two meters in the HUD are honest: **Vitality** is smoothed attention income;
 
 - **Move your cursor** near a sign to feed it. Watch it brighten and swell.
 - **Click a sign** to feast it.
-- **Stop moving** for ~12 seconds and it starts to dream — new, stranger forms replace the dim ones.
-- Press **`D`** for the developer panel: per-sign energy, lineage, activation genes, the archive, and the generation log — selection happening in real numbers.
+- **Stop moving** for ~12 seconds and it starts to dream — new, stranger forms replace the dim ones, and the glass frosts over.
+- Press **`⌘K`** (or `Ctrl K`, or `/`) and **conjure surfaces of glass** — see below.
+- Press **`D`** for the Vitals surface: per-sign energy, lineage, activation genes, the archive, and the generation log — selection happening in real numbers.
 - `GlassEmbryo.reset()` in the console wipes its memory and starts a new genesis.
+
+## The shell — a desktop-only Jarvis
+
+The second half of the experiment: *what would Jarvis look like if all you had were a desktop, a keyboard, and a mouse?* No camera, no gesture tracking, no extra points of failure — the command palette **is** the dialogue.
+
+Every window begins as **intent** — `{type, props}` — and a registry realizes intent into a draggable, resizable surface of glass over the light-field. The compositor doesn't care who is speaking: today it's a palette; an LLM could drive the exact same registry tomorrow by emitting the same specs.
+
+Type `⌘K` and conjure:
+
+| intent | surface |
+|--------|---------|
+| `clock` | local time and date |
+| `weather tokyo` | live conditions via Open-Meteo (defaults to your timezone's city) |
+| `notes` | a persistent scrap of thought |
+| `timer 5` | a countdown that chimes |
+| `github owner/repo` | live repo pulse — stars, forks, latest commit |
+| `hn` | the live front page of Hacker News |
+| `vitals` | the creature's inner life, in real numbers |
+| `perf` | render pulse of this machine |
+| `help` | everything above |
+
+Windows drag by their title bars, resize from the corner, and the layout **persists** — close the tab, come back, your desk is as you left it. It greets you by the hour ("Good morning") — the first line of the project's earliest design notes. And when you go quiet and the creature starts to dream, your windows frost over until you return.
+
+The creature and the desk share one economy: the embryo lives *behind* your windows, fed by the same cursor you work with.
 
 ## Run locally
 
@@ -39,7 +64,7 @@ Needs a browser with **WebGL2** (recent Chrome, Edge, Firefox, or Safari).
 
 ## History
 
-Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. The old prototypes live in git history.
+Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. Phase 5.0 added the shell — glass windows, live data, and the conjure palette — turning the experiment into a desktop. The old prototypes live in git history.
 
 ---
 
