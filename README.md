@@ -62,6 +62,15 @@ Nobody built the surface you asked for. Only the atoms existed.
 
 Every `(intent → spec)` pair is logged locally — the seed dataset for a future on-device model that learns *your* desk.
 
+### Cloud or fully local
+
+The brain is pluggable. In the `brain` surface you can pick:
+
+- **☁ Anthropic** — a frontier model via your API key (highest quality).
+- **⌂ Local (Ollama)** — a model running entirely on your machine, **zero cloud**. Point it at `http://localhost:11434`, run Ollama with `OLLAMA_ORIGINS=*`, and conjure offline. A "run on CPU" toggle handles small GPUs. (Local only reaches `localhost` when the desk is served over http — self-hosted or `python -m http.server` — since a public https page can't call localhost.)
+
+Measured: `qwen3:8b` emits valid GlassDSL on **19/20** conjure intents (~4–8s each). The local tier makes the desk genuinely cloud-independent — the "it just rents its mind" objection, answered.
+
 ## Run locally
 
 A single self-contained HTML file — no build step, no dependencies.
