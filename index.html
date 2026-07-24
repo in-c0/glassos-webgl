@@ -1264,27 +1264,51 @@
       }
     },
     brain: {
-      title: 'Brain', alias: ['key', 'api', 'settings'], desc: 'connect an Anthropic API key — then conjure anything', w: 320, h: 264, single: true,
+      title: 'Brain', alias: ['key', 'api', 'settings'], desc: 'choose a mind — cloud (Anthropic) or a local model — then conjure anything', w: 340, h: 348, single: true,
       mount(body) {
         const cfg = brainCfg();
+        const prov = cfg.provider === 'ollama' ? 'ollama' : 'anthropic';
         body.innerHTML =
-          `<div class="dim" style="margin-bottom:10px">Freeform conjuring needs a mind behind it. Your key stays in this browser (localStorage) and is sent only to api.anthropic.com.</div>` +
-          `<div class="field"><label>Anthropic API key</label><input id="brainKey" type="password" placeholder="sk-ant-…" autocomplete="off" /></div>` +
+          `<div class="dim" style="margin-bottom:10px">Freeform conjuring needs a mind. Pick where it runs — nothing here leaves your browser except the request to the endpoint you choose.</div>` +
+          `<div class="field"><label>Provider</label>` +
+          `<div class="btnrow" style="margin-top:0"><button id="pvA">☁ Anthropic</button><button id="pvO">⌂ Local (Ollama)</button></div></div>` +
+          `<div id="fA"><div class="field"><label>Anthropic API key</label><input id="brainKey" type="password" placeholder="sk-ant-…" autocomplete="off" /></div></div>` +
+          `<div id="fO"><div class="field"><label>Ollama base URL</label><input id="brainBase" type="text" autocomplete="off" placeholder="http://localhost:11434" /></div>` +
+          `<div class="dim" style="font-size:10px;margin:-4px 0 8px">Fully offline. Needs Ollama running with <b>OLLAMA_ORIGINS=*</b>. Only reachable when this page is served over http (local/self-hosted) — a public https page can't call localhost.</div></div>` +
           `<div class="field"><label>Model</label><input id="brainModel" type="text" autocomplete="off" /></div>` +
           `<div class="btnrow"><button id="brainSave">save</button><button id="brainClear">clear</button></div>` +
           `<div class="dim" id="brainStatus" style="margin-top:9px"></div>`;
-        const keyEl = body.querySelector('#brainKey'), modelEl = body.querySelector('#brainModel'), status = body.querySelector('#brainStatus');
+        const keyEl = body.querySelector('#brainKey'), baseEl = body.querySelector('#brainBase'),
+          modelEl = body.querySelector('#brainModel'), status = body.querySelector('#brainStatus'),
+          fA = body.querySelector('#fA'), fO = body.querySelector('#fO'),
+          bA = body.querySelector('#pvA'), bO = body.querySelector('#pvO');
+        let cur = prov;
         keyEl.value = cfg.key || '';
-        modelEl.value = cfg.model || 'claude-opus-4-8';
-        status.textContent = cfg.key ? 'connected — the palette can conjure anything.' : 'not connected.';
+        baseEl.value = cfg.base || 'http://localhost:11434';
+        const dflt = { anthropic: 'claude-opus-4-8', ollama: 'qwen3:8b' };
+        modelEl.value = cfg.model || dflt[prov];
+        const paint = () => {
+          fA.style.display = cur === 'anthropic' ? '' : 'none';
+          fO.style.display = cur === 'ollama' ? '' : 'none';
+          bA.style.opacity = cur === 'anthropic' ? 1 : 0.5;
+          bO.style.opacity = cur === 'ollama' ? 1 : 0.5;
+        };
+        bA.onclick = () => { cur = 'anthropic'; if (!modelEl.value || modelEl.value === dflt.ollama) modelEl.value = dflt.anthropic; paint(); };
+        bO.onclick = () => { cur = 'ollama'; if (!modelEl.value || modelEl.value === dflt.anthropic) modelEl.value = dflt.ollama; paint(); };
+        paint();
+        const setStatus = () => { status.textContent = brainReady() ? `connected (${brainCfg().provider === 'ollama' ? 'local' : 'cloud'}) — the palette can conjure anything.` : 'not connected.'; };
+        setStatus();
         body.querySelector('#brainSave').onclick = () => {
-          try { localStorage.setItem(BRAIN_KEY, JSON.stringify({ key: keyEl.value.trim(), model: modelEl.value.trim() || 'claude-opus-4-8' })); } catch (e) {}
-          status.textContent = keyEl.value.trim() ? 'connected — the palette can conjure anything.' : 'not connected.';
-          if (keyEl.value.trim()) queueEvent('The brain is connected.', true);
+          const c = { provider: cur, model: modelEl.value.trim() || dflt[cur] };
+          if (cur === 'anthropic') c.key = keyEl.value.trim();
+          else c.base = (baseEl.value.trim() || 'http://localhost:11434').replace(/\/$/, '');
+          try { localStorage.setItem(BRAIN_KEY, JSON.stringify(c)); } catch (e) {}
+          setStatus();
+          if (brainReady()) queueEvent(cur === 'ollama' ? 'A local brain is connected. Fully offline now.' : 'The brain is connected.', true);
         };
         body.querySelector('#brainClear').onclick = () => {
           try { localStorage.removeItem(BRAIN_KEY); } catch (e) {}
-          keyEl.value = ''; status.textContent = 'not connected.';
+          keyEl.value = ''; setStatus();
         };
       }
     },
@@ -1319,6 +1343,12 @@
 
   function brainCfg() {
     try { return JSON.parse(localStorage.getItem(BRAIN_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  // "connected" spans both providers: a cloud key, or a local endpoint+model
+  function brainReady() {
+    const c = brainCfg();
+    if (c.provider === 'ollama') return !!(c.base && c.model);
+    return !!c.key;
   }
   function genlog(intent, ok, spec) {
     try {
@@ -1534,8 +1564,10 @@ fetchjson may ONLY use these keyless CORS-open hosts: api.open-meteo.com, geocod
 - repo stars: url "https://api.github.com/repos/OWNER/REPO" path "stargazers_count"
 Never invent other hosts. When no live source fits, compute or write the content yourself — you are intelligent; a good static surface beats a broken live one.
 
+Keep surfaces COMPACT: prefer <=8 top-level body items and h<=340 unless the content truly demands more. A tight, glanceable surface beats a sprawling one. For step lists / checklists, use one {"t":"list"} node rather than many text nodes. Worked example — "a 3-step morning routine": {"title":"Morning","w":220,"h":180,"body":[{"t":"text","v":"Morning routine","style":"label"},{"t":"list","items":["Drink water","Stretch 5 min","Review the day"]}]}
+
 Context: local time ${fmt2(d.getHours())}:${fmt2(d.getMinutes())}, ${d.toDateString()}, timezone ${tz}. Open surfaces: ${open}. Living background: ${world.alive.length} evolved signs, generation ${world.generation}.
-Respond with the JSON object only.`;
+Emit ONLY the raw JSON object — no markdown fences, no prose.`;
   }
 
   function extractJSON(text) {
@@ -1545,9 +1577,28 @@ Respond with the JSON object only.`;
     return null;
   }
 
-  async function callBrain(intent) {
-    const cfg = brainCfg();
-    if (!cfg.key) throw new Error('no API key — open “brain” and connect one');
+  // Local brain: Ollama's OpenAI-ish /api/chat. format:'json' constrains the
+  // model to emit parseable JSON — a big reliability win for small models.
+  async function callOllama(cfg, intent) {
+    const res = await fetch(cfg.base.replace(/\/$/, '') + '/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model || 'qwen3:8b',
+        stream: false, think: false, format: 'json',
+        options: { temperature: 0.3, num_ctx: 4096, num_predict: 2200 },
+        messages: [
+          { role: 'system', content: buildBrainSystem() },
+          { role: 'user', content: intent },
+        ],
+      }),
+    }).catch(() => { throw new Error('local brain unreachable — is Ollama running with OLLAMA_ORIGINS=* ? (and served over http, not https)'); });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || ('local brain error (HTTP ' + res.status + ')'));
+    return data?.message?.content || '';
+  }
+
+  async function callAnthropic(cfg, intent) {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -1566,7 +1617,13 @@ Respond with the JSON object only.`;
     const data = await res.json().catch(() => null);
     if (!res.ok) throw new Error(data?.error?.message || ('the brain is unreachable (HTTP ' + res.status + ')'));
     if (data.stop_reason === 'refusal') throw new Error('the brain declined this request');
-    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  }
+
+  async function callBrain(intent) {
+    const cfg = brainCfg();
+    if (!brainReady()) throw new Error('no brain — open “brain” and connect a cloud key or a local model');
+    const text = cfg.provider === 'ollama' ? await callOllama(cfg, intent) : await callAnthropic(cfg, intent);
     const spec = extractJSON(text);
     const v = validateSpec(spec);
     if (!v.ok) throw new Error('the brain spoke, but not in GlassDSL (' + v.error + ')');
@@ -1756,7 +1813,7 @@ Respond with the JSON object only.`;
       .map(([k, d]) => `<div class="pal-row${m && m.k === k && !isFreeform(q) ? ' sel' : ''}" data-k="${k}"><b>${k}</b><span>${d.desc}</span></div>`)
       .join('');
     if (q.trim() && (isFreeform(q) || !rows)) {
-      const brainRow = brainCfg().key
+      const brainRow = brainReady()
         ? `<div class="pal-row sel" data-brain="1"><b>✦</b><span>conjure “${esc(q.trim().slice(0, 60))}” with the brain</span></div>`
         : `<div class="pal-row" data-k="brain"><b>brain</b><span>connect an API key to conjure “${esc(q.trim().slice(0, 40))}”</span></div>`;
       rows = brainRow + rows;
@@ -1772,7 +1829,7 @@ Respond with the JSON object only.`;
       const m = matchCmd(v);
       if (m) { openPanel(m.k, argProps(m.k, m.arg)); paletteClose(); return; }
     }
-    if (brainCfg().key) { conjureIntent(v); paletteClose(); return; }
+    if (brainReady()) { conjureIntent(v); paletteClose(); return; }
     openPanel('brain');
     paletteClose();
   }
