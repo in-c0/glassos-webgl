@@ -1274,7 +1274,8 @@
           `<div class="btnrow" style="margin-top:0"><button id="pvA">☁ Anthropic</button><button id="pvO">⌂ Local (Ollama)</button></div></div>` +
           `<div id="fA"><div class="field"><label>Anthropic API key</label><input id="brainKey" type="password" placeholder="sk-ant-…" autocomplete="off" /></div></div>` +
           `<div id="fO"><div class="field"><label>Ollama base URL</label><input id="brainBase" type="text" autocomplete="off" placeholder="http://localhost:11434" /></div>` +
-          `<div class="dim" style="font-size:10px;margin:-4px 0 8px">Fully offline. Needs Ollama running with <b>OLLAMA_ORIGINS=*</b>. Only reachable when this page is served over http (local/self-hosted) — a public https page can't call localhost.</div></div>` +
+          `<div class="dim" style="font-size:10px;margin:-4px 0 8px">Fully offline. Needs Ollama running with <b>OLLAMA_ORIGINS=*</b>. Only reachable when this page is served over http (local/self-hosted) — a public https page can't call localhost.</div>` +
+          `<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-dim);margin-bottom:8px;cursor:pointer"><input id="brainCpu" type="checkbox" style="width:auto" /> run on CPU (no VRAM — for small cards, slower)</label></div>` +
           `<div class="field"><label>Model</label><input id="brainModel" type="text" autocomplete="off" /></div>` +
           `<div class="btnrow"><button id="brainSave">save</button><button id="brainClear">clear</button></div>` +
           `<div class="dim" id="brainStatus" style="margin-top:9px"></div>`;
@@ -1285,6 +1286,7 @@
         let cur = prov;
         keyEl.value = cfg.key || '';
         baseEl.value = cfg.base || 'http://localhost:11434';
+        body.querySelector('#brainCpu').checked = !!cfg.cpu;
         const dflt = { anthropic: 'claude-opus-4-8', ollama: 'qwen3:8b' };
         modelEl.value = cfg.model || dflt[prov];
         const paint = () => {
@@ -1301,7 +1303,7 @@
         body.querySelector('#brainSave').onclick = () => {
           const c = { provider: cur, model: modelEl.value.trim() || dflt[cur] };
           if (cur === 'anthropic') c.key = keyEl.value.trim();
-          else c.base = (baseEl.value.trim() || 'http://localhost:11434').replace(/\/$/, '');
+          else { c.base = (baseEl.value.trim() || 'http://localhost:11434').replace(/\/$/, ''); c.cpu = body.querySelector('#brainCpu').checked; }
           try { localStorage.setItem(BRAIN_KEY, JSON.stringify(c)); } catch (e) {}
           setStatus();
           if (brainReady()) queueEvent(cur === 'ollama' ? 'A local brain is connected. Fully offline now.' : 'The brain is connected.', true);
@@ -1586,7 +1588,9 @@ Emit ONLY the raw JSON object — no markdown fences, no prose.`;
       body: JSON.stringify({
         model: cfg.model || 'qwen3:8b',
         stream: false, think: false, format: 'json',
-        options: { temperature: 0.3, num_ctx: 4096, num_predict: 2200 },
+        // num_gpu:0 forces CPU — the escape hatch when the GPU's VRAM is
+        // already spoken for (the desk's own WebGL + your other apps)
+        options: { temperature: 0.3, num_ctx: 4096, num_predict: 2200, ...(cfg.cpu ? { num_gpu: 0 } : {}) },
         messages: [
           { role: 'system', content: buildBrainSystem() },
           { role: 'user', content: intent },
