@@ -21,6 +21,9 @@ The two meters in the HUD are honest: **Vitality** is smoothed attention income;
 
 - **Move your cursor** near a sign to feed it. Watch it brighten and swell.
 - **Click a sign** to feast it.
+- A well-fed sign **buds**: its child drifts out of it, and if the field is full, the hungriest unfed sign gives way.
+- On your first visit a ghost hand shows this once — move your own cursor to take over.
+- The speaker in the HUD turns its voice on (off by default).
 - **Stop moving** for ~12 seconds and it starts to dream — new, stranger forms replace the dim ones, and the glass frosts over.
 - Press **`⌘K`** (or `Ctrl K`, or `/`) and **conjure surfaces of glass** — see below.
 - Press **`D`** for the Vitals surface: per-sign energy, lineage, activation genes, the archive, and the generation log — selection happening in real numbers.
