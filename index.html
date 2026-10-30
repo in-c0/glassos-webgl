@@ -193,8 +193,7 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center; padding: 24px;
       background: radial-gradient(120% 90% at 50% 30%, rgba(20,26,52,0.35), rgba(5,6,12,0.86) 70%);
-      backdrop-filter: blur(3px);
-      transition: opacity 1.4s ease, visibility 1.4s;
+        transition: opacity 1.4s ease, visibility 1.4s;
     }
     #intro.hide { opacity: 0; visibility: hidden; pointer-events: none; }
     #intro .halo {
@@ -223,6 +222,25 @@
     #intro .foot { margin-top: 30px; font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; }
     #intro .foot a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.2); }
 
+    #ghost {
+      position: fixed; z-index: 9; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      border-radius: 50%; pointer-events: none; opacity: 0;
+      border: 1px solid rgba(233,240,255,0.7); box-shadow: 0 0 18px rgba(170,190,255,0.6);
+      transition: opacity .6s ease;
+    }
+    #ghost.on { opacity: 1; }
+    #ghost::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: rgba(233,240,255,0.85); }
+    #voiceBtn {
+      background: none; border: none; padding: 2px; margin-left: 8px; cursor: pointer;
+      color: var(--ink-faint); display: inline-flex; align-items: center;
+    }
+    #voiceBtn:hover { color: var(--ink); }
+    #voiceBtn .w { opacity: 0; transition: opacity .35s ease; }
+    #voiceBtn.on { color: var(--ink); }
+    #voiceBtn.on .w { opacity: 1; }
+    #voiceBtn .x { transition: opacity .35s ease; }
+    #voiceBtn.on .x { opacity: 0; }
+
     @media (max-width: 640px) {
       #panel { width: calc(100vw - 48px); bottom: 16px; left: 16px; }
       #brand { top: 16px; left: 16px; }
@@ -247,7 +265,7 @@
   <div id="panel" class="glass">
     <div class="row">
       <div class="mode"><span class="dot"></span><span class="modelabel" id="modeLabel">Awake</span></div>
-      <div class="clock" id="ageClock">—</div>
+      <div style="display:flex;align-items:center"><div class="clock" id="ageClock">—</div><button id="voiceBtn" aria-pressed="false" title="voice off" aria-label="voice"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M2 5h2.5L8 2v10L4.5 9H2z" fill="currentColor" stroke="none" opacity=".8"/><path class="w" d="M10.3 4.6a3 3 0 0 1 0 4.8M12.2 2.8a5.6 5.6 0 0 1 0 8.4"/><path class="x" d="M10.5 5l3.5 4M14 5l-3.5 4"/></svg></button></div>
     </div>
     <div class="meter"><div class="lab"><span>Vitality</span><span class="val" id="vVit">0.00</span></div><div class="bar"><div class="fill vit" id="fVit"></div></div></div>
     <div class="meter"><div class="lab"><span>Restlessness</span><span class="val" id="vRes">0.00</span></div><div class="bar"><div class="fill res" id="fRes"></div></div></div>
@@ -265,15 +283,11 @@
     </div>
   </div>
 
+  <div id="ghost"></div>
   <div id="intro">
     <div class="halo"></div>
     <h1><b>Glass</b>OS</h1>
-    <p class="tag">A digital embryo whose signs are <em>alive</em>. Each one is a small genome of light &mdash; nothing here is drawn by hand. Your attention is their food: the forms you linger on survive and breed; the rest starve. Leave it alone, and it dreams new forms to show you when you return. It remembers, across visits. And it is also a desk: press <b>⌘K</b> and conjure surfaces of glass over the field where it lives.</p>
-    <div class="lex">
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoGenome"></svg><span>each sign is a genome &mdash; evolved, not drawn</span></div>
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoFeed"></svg><span>your attention is food &mdash; linger, and it lives</span></div>
-      <div class="item"><svg class="g" viewBox="0 0 40 40" id="icoDream"></svg><span>alone, it dreams &mdash; and it remembers you</span></div>
-    </div>
+    <p class="tag">Signs of living light. Linger near one, and it lives.</p>
     <button id="enterBtn">Give it attention</button>
     <div class="foot">A WebGL experiment by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a> &middot; evolution persists in your browser</div>
   </div>
@@ -320,7 +334,8 @@
      sign's stroke; `lw` is stroke width in function units.
      ============================================================ */
   const H = 6;                 // hidden nodes per genome
-  const MAXG = 6;              // living signs rendered at once
+  const MAXG = 6;              // living signs (population cap)
+  const RMAX = MAXG + 2;       // render capacity: room for the dying + their replacements
   const STORE_KEY = 'glassos-embryo-v1';
 
   const rnd = Math.random;
@@ -477,7 +492,7 @@
 
   const SLOTS = MAXG;
   function freeSlot() {
-    const used = new Set(world.alive.map(o => o.slot));
+    const used = new Set(world.alive.filter(o => !o.dying).map(o => o.slot));
     for (let i = 0; i < SLOTS; i++) if (!used.has(i)) return i;
     return (rnd() * SLOTS) | 0;
   }
@@ -502,6 +517,14 @@
   }
 
   function organismPos(o, aspect) {
+    const home = homePos(o, aspect);
+    if (!o.birthFrom) return home;
+    const k = clamp((simT - o.birthT) / 1.6, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    if (k >= 1) o.birthFrom = null;
+    return [o.birthFrom ? o.birthFrom[0] + (home[0] - o.birthFrom[0]) * e : home[0],
+            o.birthFrom ? o.birthFrom[1] + (home[1] - o.birthFrom[1]) * e : home[1]];
+  }
+  function homePos(o, aspect) {
     const ex = Math.min(0.60, aspect * 0.5 - 0.20), ey = 0.335;
     const th = (o.slot / SLOTS) * Math.PI * 2 - Math.PI / 2 + o.thetaJit + (dreaming ? simT * 0.01 : 0);
     return [
@@ -519,10 +542,17 @@
     }
   }
 
-  function breedAwake() {
+  function breedAwake(forcedParent = null) {
     let child, parents = world.alive.filter(o => !o.dying);
-    let parentName = null, hue;
-    if (parents.length && rnd() > 0.1) {
+    let parentName = null, hue, parentObj = null;
+    if (forcedParent) {
+      // budding: a well-fed sign bears a child directly — attention → offspring
+      let base = forcedParent.g;
+      const others = parents.filter(o => o !== forcedParent && o.lifetimeIncome > 0.2);
+      if (others.length && rnd() < 0.25) base = crossoverGenome(base, others[(rnd() * others.length) | 0].g);
+      child = makeViable(() => mutateGenome(base, 0.12 * (1 + 2 * restless)));
+      parentName = forcedParent.name; hue = forcedParent.hue; parentObj = forcedParent;
+    } else if (parents.length && rnd() > 0.1) {
       // fitness-weighted parent choice: energy IS fitness
       const pick = () => {
         const total = parents.reduce((s, o) => s + o.energy * o.energy, 0);
@@ -543,10 +573,27 @@
       child = makeViable(randomGenome); // immigration keeps the gene pool fresh
     }
     const o = makeOrganism(child, { parentName, hue, energy: 0.8 });
+    if (parentObj) { o.birthFrom = parentObj.pos.slice(); o.birthT = simT; }
     world.alive.push(o);
     world.generation++; world.awakeBirths++;
-    if (parentName && rnd() < 0.6) queueEvent(`${o.name} is born of ${parentName}.`, rnd() < 0.4);
+    if (parentName && (parentObj || rnd() < 0.6)) queueEvent(`${o.name} is born of ${parentName}.`, rnd() < 0.4);
     return o;
+  }
+
+  // A sign that has eaten enough buds. If every slot is taken, the
+  // hungriest unfed sign gives way — the fed out-compete the starving.
+  const BUD_AT = 0.35, BUD_COOLDOWN = 4;
+  function tryBud(parent) {
+    if (parent.bud < BUD_AT || simT - (parent.lastBudT || -99) < BUD_COOLDOWN) return;
+    const living = world.alive.filter(o => !o.dying);
+    if (living.length >= MAXG) {
+      const weakest = living.filter(o => o !== parent && simT - o.bornT > 3)
+        .sort((a, b) => (a.energy + a.feedGlow) - (b.energy + b.feedGlow))[0];
+      if (!weakest || weakest.feedGlow > 0.2) return;
+      weakest.dying = simT;
+    }
+    parent.bud = 0; parent.lastBudT = simT;
+    breedAwake(parent);
   }
 
   function dreamStep() {
@@ -601,6 +648,7 @@
       o.energy = Math.min(3, o.energy + inst * dt);
       if (!dreaming) o.energy -= 0.022 * dt * (started ? 1 : 0); // metabolism only while awake
       o.lifetimeIncome += inst * dt;
+      if (!dreaming) o.bud = (o.bud || 0) + inst * dt;
       world.totalAttention += inst * dt;
       incomeRate += inst;
       o.feedGlow += (clamp(inst / 0.22, 0, 1) - o.feedGlow) * Math.min(1, dt * 4);
@@ -621,9 +669,11 @@
     incomeEma += (incomeRate - incomeEma) * Math.min(1, dt * 0.05);
     restless = clamp(1 - incomeEma / 0.05, 0, 1);
 
-    // births
-    if (started && !dreaming && world.alive.length < MAXG && simT - lastBirthT > 2.8) {
-      lastBirthT = simT; breedAwake();
+    // births — awake, they come from attention: a fed sign buds
+    if (started && !dreaming) {
+      for (const o of world.alive) if (!o.dying && o.bud >= BUD_AT) { tryBud(o); break; }
+      // floor: if attention has starved the field nearly empty, immigrants arrive
+      if (world.alive.filter(o => !o.dying).length < 3 && simT - lastBirthT > 2.8) { lastBirthT = simT; breedAwake(); }
     }
     if (dreaming && simT - lastDreamT > 3.5) {
       lastDreamT = simT; dreamStep();
@@ -672,8 +722,9 @@
   }
   function genesis() {
     world.bornEpoch = Date.now();
-    for (let i = 0; i < MAXG; i++) {
-      world.alive.push(makeOrganism(makeViable(randomGenome), { slot: i }));
+    // begin with four: two empty slots, so the very first attention can breed
+    for (let i = 0; i < 4; i++) {
+      world.alive.push(makeOrganism(makeViable(randomGenome), { slot: [0, 1, 3, 4][i] }));
     }
   }
   function reset() {
@@ -703,8 +754,9 @@
   uniform float u_beat;         // heartbeat 0..1
   uniform vec2  u_pointer;      // p-space (centred, y up)
   uniform float u_pointerGlow;  // 0..1
+  uniform vec3  u_feed;         // xy: the sign being fed, z: how hard (0..1)
   uniform int   u_alive;
-  uniform vec4  u_G[${MAXG * 16}]; // packed organisms: meta + genome
+  uniform vec4  u_G[${RMAX * 16}]; // packed organisms: meta + genome
 
   float hash(vec2 p){ p = fract(p*vec2(123.34, 345.45)); p += dot(p, p+34.345); return fract(p.x*p.y); }
   float noise(vec2 p){
@@ -796,7 +848,7 @@
 
     // ---- the living signs: genomes rendered as refracted light --------
     float disp = 0.020 + 0.020*u_restless; // chromatic dispersion
-    for (int gI = 0; gI < ${MAXG}; gI++){
+    for (int gI = 0; gI < ${RMAX}; gI++){
       if (gI >= u_alive) break;
       int B = gI*16;
       vec4 m0 = u_G[B];     // pos.xy, radius, fade
@@ -828,6 +880,18 @@
     col += (tint*0.6 + vec3(0.5,0.7,1.0)*0.5) * spark * 1.3;
     col += tint * u_pointerGlow * 0.25 * (1.0 - smoothstep(0.0, 0.02, abs(pd-0.06-0.04*sin(u_time*3.0))));
 
+    // ---- the feeding thread: light flows from your cursor into the sign
+    if (u_feed.z > 0.01) {
+      vec2 a = u_pointer, b = u_feed.xy, ab = b - a;
+      float L = max(length(ab), 1e-4);
+      float h = clamp(dot(p - a, ab) / (L*L), 0.0, 1.0);
+      float d = length(p - a - ab*h);
+      float flow = 0.55 + 0.45*sin(h*L*90.0 - u_time*9.0);   // pulses travel toward the sign
+      float taper = smoothstep(0.0, 0.15, h) * smoothstep(1.0, 0.75, h);
+      float thread = exp(-d*d*9000.0) * flow * taper;
+      col += (tint*0.7 + vec3(0.6,0.75,1.0)*0.5) * (thread*1.6 + exp(-d*d*700.0)*0.12*taper) * u_feed.z;
+    }
+
     // ---- finish -------------------------------------------------------
     col *= 1.0 - 0.55*smoothstep(0.35, 1.35, length(p));
     col = toneMap(col);
@@ -858,15 +922,15 @@
   const U = name => gl.getUniformLocation(program, name);
   const u = {
     res: U('u_res'), time: U('u_time'), vitality: U('u_vitality'), restless: U('u_restless'),
-    dream: U('u_dream'), beat: U('u_beat'), pointer: U('u_pointer'), pointerGlow: U('u_pointerGlow'),
+    dream: U('u_dream'), beat: U('u_beat'), pointer: U('u_pointer'), pointerGlow: U('u_pointerGlow'), feed: U('u_feed'),
     alive: U('u_alive'), G: U('u_G')
   };
   resize();
 
-  const GDATA = new Float32Array(MAXG * 16 * 4);
+  const GDATA = new Float32Array(RMAX * 16 * 4);
   function packOrganisms() {
     GDATA.fill(0);
-    const n = Math.min(world.alive.length, MAXG);
+    const n = Math.min(world.alive.length, RMAX);
     for (let i = 0; i < n; i++) {
       const o = world.alive[i];
       const fb = i * 64;
@@ -914,7 +978,7 @@
       const d = Math.hypot(x - o.pos[0], y - o.pos[1]);
       if (d < bestD) { bestD = d; best = o; }
     }
-    if (best) { best.energy = Math.min(3, best.energy + 0.8); best.lifetimeIncome += 0.8; best.feedGlow = 1; world.totalAttention += 0.8; }
+    if (best) { best.energy = Math.min(3, best.energy + 0.8); best.lifetimeIncome += 0.8; best.feedGlow = 1; best.bud = (best.bud || 0) + 0.5; world.totalAttention += 0.8; }
   });
 
   /* ---------------- HUD, bubbles, speech ---------------- */
@@ -940,13 +1004,31 @@
     lastBubbleT = simT;
     const ev = events.shift();
     showThought(ev.text);
-    if (ev.speak && speechOn && 'speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(ev.text);
-      utter.pitch = 1.0 + (vitality - restless) * 0.4;
-      utter.rate = 0.95;
-      utter.volume = 0.5;
-      window.speechSynthesis.speak(utter);
-    }
+    if (ev.speak && speechOn) say(ev.text);
+  }
+
+  /* ---------------- voice: off until you turn it on ---------------- */
+  const VOICE_KEY = 'glassos-voice-v1';
+  const canSpeak = 'speechSynthesis' in window;
+  try { speechOn = canSpeak && localStorage.getItem(VOICE_KEY) === '1'; } catch (e) {}
+  function say(text) {
+    if (!canSpeak) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.pitch = 1.0 + (vitality - restless) * 0.4;
+    utter.rate = 0.95;
+    utter.volume = 0.5;
+    window.speechSynthesis.speak(utter);
+  }
+  function setVoice(on, fromUser) {
+    speechOn = canSpeak && on;
+    const b = el('voiceBtn');
+    b.classList.toggle('on', speechOn);
+    b.setAttribute('aria-pressed', String(speechOn));
+    b.title = speechOn ? 'voice on' : 'voice off';
+    if (!fromUser) return;
+    try { localStorage.setItem(VOICE_KEY, speechOn ? '1' : '0'); } catch (e) {}
+    if (speechOn) say('I can speak now.');     // turning it on: hear it once
+    else if (canSpeak) window.speechSynthesis.cancel();
   }
 
   function fmtAge(ms) {
@@ -1019,6 +1101,9 @@
     gl.uniform1f(u.beat, beat);
     gl.uniform2f(u.pointer, pointer.x, pointer.y);
     gl.uniform1f(u.pointerGlow, pointerGlow);
+    let fedO = null;
+    for (const o of world.alive) if (!o.dying && (!fedO || o.feedGlow > fedO.feedGlow)) fedO = o;
+    gl.uniform3f(u.feed, fedO ? fedO.pos[0] : 0, fedO ? fedO.pos[1] : 0, fedO ? clamp(fedO.feedGlow * 1.3, 0, 1) : 0);
     const n = packOrganisms();
     gl.uniform1i(u.alive, n);
     gl.uniform4fv(u.G, GDATA);
@@ -1037,12 +1122,6 @@
   }
 
   /* ---------------- intro / start ---------------- */
-  function paintIcons() {
-    el('icoGenome').innerHTML = `<circle cx="10" cy="12" r="3" fill="none" stroke="#ffd27f" stroke-width="1.3"/><circle cx="28" cy="9" r="3" fill="none" stroke="#b39cff" stroke-width="1.3"/><circle cx="20" cy="28" r="3" fill="none" stroke="#8fd7ff" stroke-width="1.3"/><path d="M12.5 13.8 L18 25.5 M22 25.5 L26.5 11.5 M13 11.5 L25 9.5" stroke="rgba(233,240,255,0.4)" stroke-width="1"/>`;
-    el('icoFeed').innerHTML = `<path d="M14 8 L14 26 L19 21 L23 30 L26 28.5 L22 20 L29 19.5 Z" fill="none" stroke="#ffd27f" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6 Q4 10 8 14 M6 3 Q0 10 6 17" fill="none" stroke="rgba(255,210,127,0.5)" stroke-width="1.2"/>`;
-    el('icoDream').innerHTML = `<path d="M26 6 A12 12 0 1 0 34 22 A9.5 9.5 0 0 1 26 6 Z" fill="none" stroke="#b39cff" stroke-width="1.4"/><circle cx="31" cy="8" r="1" fill="#8fd7ff"/><circle cx="35" cy="13" r="0.8" fill="#8fd7ff"/>`;
-  }
-  paintIcons();
 
   function start() {
     if (started) return;
@@ -1050,16 +1129,57 @@
     lastMoveT = simT;
     el('intro').classList.add('hide');
     panel.classList.add('show');
-    speechOn = 'speechSynthesis' in window;
     // her first note for this OS: "First we start with Good Morning"
     const h = new Date().getHours();
     queueEvent(h < 12 ? 'Good morning.' : h < 18 ? 'Good afternoon.' : 'Good evening.', true);
     if (world.loadedFromStore) {
       queueEvent('…you came back. I remember.', true);
     } else {
-      queueEvent('I am new. Six signs, no meanings yet. Stay a moment.', true);
+      queueEvent('I am new. Four signs, no meanings yet. Feed one.', true);
     }
     restoreShell();
+    setVoice(speechOn, false);
+    voiceDemo();
+    if (!world.loadedFromStore) ghostDemo();
+  }
+
+  // the voice control flicks on→off once (silently) so you see what it is
+  function voiceDemo() {
+    if (!canSpeak || speechOn) return;
+    const b = el('voiceBtn');
+    setTimeout(() => b.classList.add('on'), 1400);
+    setTimeout(() => b.classList.remove('on'), 2300);
+  }
+  el('voiceBtn').addEventListener('click', (e) => { e.stopPropagation(); setVoice(!speechOn, true); });
+
+  // First visit only: a ghost hand shows what attention does — once.
+  // It really feeds the nearest sign (no fake), so the sign buds while you watch.
+  let ghostLive = false;
+  function ghostDemo() {
+    const g = el('ghost');
+    const aspect = innerWidth / innerHeight;
+    const target = world.alive.slice().sort((a, b) => Math.abs(a.pos[0]) - Math.abs(b.pos[0]))[0];
+    if (!target) return;
+    const toScreen = q => [(q[0] / aspect + 0.5) * innerWidth, (0.5 - q[1]) * innerHeight];
+    const from = [innerWidth * 0.5, innerHeight * 0.78];
+    let t0 = null; ghostLive = true;
+    const stop = () => { ghostLive = false; g.classList.remove('on'); window.removeEventListener('pointermove', userTook); };
+    const userTook = (e) => { if (e.isTrusted) stop(); };
+    setTimeout(() => window.addEventListener('pointermove', userTook), 50);
+    function step(now) {
+      if (!ghostLive) return;
+      if (t0 === null) { t0 = now; g.classList.add('on'); }
+      const t = (now - t0) / 1000, [tx, ty] = toScreen(target.pos);
+      let x, y;
+      if (t < 1.4) { const e = 1 - Math.pow(1 - t / 1.4, 3); x = from[0] + (tx - from[0]) * e; y = from[1] + (ty - from[1]) * e; }
+      else { x = tx + Math.cos(t * 2.2) * 14; y = ty + Math.sin(t * 2.9) * 9; } // linger
+      g.style.transform = `translate(${x}px, ${y}px)`;
+      const [px, py] = toPSpace(x, y); pointer.x = px; pointer.y = py;
+      lastMoveT = simT; pointerGlow = Math.min(1, pointerGlow + 0.2);
+      if (t > 5.2) { stop(); return; }
+      requestAnimationFrame(step);
+    }
+    setTimeout(() => requestAnimationFrame(step), 700);
   }
   el('enterBtn').addEventListener('click', start);
   window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !started) start(); });
@@ -1761,11 +1881,9 @@ Emit ONLY the raw JSON object — no markdown fences, no prose.`;
     try { stored = JSON.parse(localStorage.getItem(SHELL_KEY) || 'null'); } catch (e) {}
     if (stored && stored.v === 1 && Array.isArray(stored.panels) && stored.panels.length) {
       for (const p of stored.panels) openPanel(p.t, p.p || {}, { x: p.x, y: p.y, w: p.w, h: p.h }, true);
-    } else {
-      openPanel('clock', {}, null, true);
-      openPanel('weather', {}, null, true);
-      openPanel('vitals', {}, { x: 24, y: 84, w: 332, h: 336 }, true);
     }
+    // first visit: an empty desk — the creature is the first thing you meet.
+    // surfaces arrive when you conjure them (⌘K), never uninvited.
   }
 
   setInterval(() => { for (const w of wins) { try { w.tick && w.tick(); } catch (e) {} } }, 1000);
