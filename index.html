@@ -1,0 +1,2008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GlassOS — a mind learning to speak in light</title>
+  <meta name="description" content="A digital embryo whose signs are living genomes. Your attention is their food: linger and they survive and breed; leave, and it dreams new forms. It remembers you across visits. A WebGL experiment by Ava Kim." />
+  <meta property="og:title" content="GlassOS — a mind learning to speak in light" />
+  <meta property="og:description" content="Signs that live, breed, and starve for your attention — an emergent visual language, evolved not drawn." />
+  <style>
+    :root {
+      --ink: rgba(233, 240, 255, 0.92);
+      --ink-dim: rgba(233, 240, 255, 0.55);
+      --ink-faint: rgba(233, 240, 255, 0.32);
+      --glass: rgba(20, 26, 44, 0.42);
+      --glass-brd: rgba(150, 180, 255, 0.14);
+      --sans: ui-sans-serif, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
+      --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%; width: 100%;
+      overflow: hidden; background: #05060c; color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      touch-action: none;
+    }
+    #glassos {
+      position: fixed; inset: 0; width: 100vw; height: 100vh;
+      display: block; z-index: 0;
+    }
+
+    /* ---------- Shared glass surface ---------- */
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--glass-brd);
+      border-radius: 16px;
+      backdrop-filter: blur(18px) saturate(1.3);
+      -webkit-backdrop-filter: blur(18px) saturate(1.3);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    /* ---------- Wordmark ---------- */
+    #brand {
+      position: fixed; top: 22px; left: 24px; z-index: 5;
+      display: flex; align-items: center; gap: 11px;
+      user-select: none; pointer-events: none;
+    }
+    #brand .mark {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #fff, #bfe0ff 30%, #8a7bff 62%, #2a3a8f 100%);
+      box-shadow: 0 0 18px rgba(150,180,255,0.5), inset 0 0 6px rgba(255,255,255,0.6);
+    }
+    #brand .txt { line-height: 1.05; }
+    #brand .name { font-weight: 600; letter-spacing: 0.14em; font-size: 15px; }
+    #brand .name b { font-weight: 700; }
+    #brand .sub { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-faint); margin-top: 3px; }
+
+    /* ---------- State panel ---------- */
+    #panel {
+      position: fixed; bottom: 22px; left: 24px; z-index: 5;
+      width: 276px; padding: 16px 18px 15px;
+      font-size: 12px; opacity: 0; transform: translateY(8px);
+      transition: opacity .8s ease, transform .8s ease;
+    }
+    #panel.show { opacity: 1; transform: none; }
+    #panel .row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+    #panel .mode { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 0.08em; }
+    #panel .mode .dot { width: 8px; height: 8px; border-radius: 50%; background: #7fe6c4; box-shadow: 0 0 10px #7fe6c4; transition: all .6s; }
+    #panel.dreaming .mode .dot { background: #9b8cff; box-shadow: 0 0 12px #9b8cff; }
+    #panel .modelabel { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+    #panel .clock { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
+
+    .meter { margin-bottom: 8px; }
+    .meter .lab { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 4px; }
+    .meter .lab .val { font-family: var(--mono); color: var(--ink-faint); letter-spacing: 0; }
+    .meter .bar { height: 3px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .meter .fill { height: 100%; width: 0%; border-radius: 3px; transition: width .5s ease; }
+    .fill.vit { background: linear-gradient(90deg,#ffd27f,#ff9ecb); box-shadow: 0 0 8px rgba(255,180,140,.7); }
+    .fill.res { background: linear-gradient(90deg,#4f8fff,#b39cff); box-shadow: 0 0 8px rgba(120,140,255,.7); }
+
+    #panel .expressing {
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07);
+      font-size: 11px; color: var(--ink-dim); letter-spacing: 0.04em; min-height: 30px;
+    }
+    #panel .expressing b { color: var(--ink); font-weight: 600; }
+    #panel .hint { margin-top: 11px; font-size: 10px; color: var(--ink-faint); letter-spacing: 0.03em; line-height: 1.5; }
+    #panel .hint kbd {
+      font-family: var(--mono); font-size: 9px; padding: 1px 5px; border-radius: 4px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* ---------- Shell: surfaces of glass ---------- */
+    #shell { position: fixed; inset: 0; z-index: 6; pointer-events: none; }
+    #shell.frost .win { opacity: 0.5; filter: blur(1.5px) saturate(0.75); }
+    .win {
+      position: absolute; pointer-events: auto; display: flex; flex-direction: column;
+      min-width: 176px; min-height: 96px;
+      animation: winIn .45s cubic-bezier(.2,.9,.25,1);
+      transition: opacity .8s ease, filter .8s ease;
+    }
+    @keyframes winIn { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+    .win-t {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px 8px; cursor: grab; user-select: none;
+      font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .win-t:active { cursor: grabbing; }
+    .win-x {
+      background: none; border: none; color: var(--ink-faint); cursor: pointer;
+      font-size: 15px; line-height: 1; padding: 0 2px; margin-left: 10px;
+    }
+    .win-x:hover { color: var(--ink); }
+    .win-b { flex: 1; padding: 11px 14px 12px; font-size: 12px; line-height: 1.55; color: var(--ink-dim); overflow: auto; }
+    .win-b::-webkit-scrollbar { width: 5px; }
+    .win-b::-webkit-scrollbar-thumb { background: rgba(150,180,255,0.2); border-radius: 3px; }
+    .win-r { position: absolute; right: 0; bottom: 0; width: 16px; height: 16px; cursor: nwse-resize;
+      border-right: 2px solid rgba(150,180,255,0.25); border-bottom: 2px solid rgba(150,180,255,0.25); border-radius: 0 0 14px 0; }
+    .win h4 { margin: 0 0 6px; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+    .win .block { margin-bottom: 13px; font-family: var(--mono); font-size: 10.5px; line-height: 1.6; }
+    .win b { color: var(--ink); font-weight: 600; }
+    .win i { color: #9b8cff; font-style: normal; }
+    .win .ebar { display: inline-block; height: 6px; background: linear-gradient(90deg,#ffd27f,#ff9ecb); border-radius: 3px; vertical-align: middle; }
+    .win .big { font-size: 34px; font-weight: 200; letter-spacing: 0.04em; color: var(--ink); line-height: 1.15; }
+    .win .dim { color: var(--ink-faint); }
+    .win a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.15); }
+    .win a:hover { color: var(--ink); }
+    .win textarea {
+      width: 100%; height: 100%; resize: none; background: transparent; border: none; outline: none;
+      color: var(--ink); font-family: var(--sans); font-size: 12.5px; line-height: 1.55;
+    }
+    .win .btnrow { display: flex; gap: 8px; margin-top: 10px; }
+    .win .btnrow button {
+      font-family: var(--sans); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink-dim); background: rgba(150,180,255,0.07); border: 1px solid rgba(150,180,255,0.25);
+      border-radius: 20px; padding: 5px 14px; cursor: pointer;
+    }
+    .win .btnrow button:hover { color: var(--ink); border-color: rgba(180,200,255,0.5); }
+    .win .field { margin-bottom: 10px; }
+    .win .field label { display: block; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 4px; }
+    .win .field input {
+      width: 100%; background: rgba(150,180,255,0.06); border: 1px solid rgba(150,180,255,0.2);
+      border-radius: 8px; padding: 7px 10px; color: var(--ink); font-family: var(--mono); font-size: 11px; outline: none;
+    }
+    .win .field input:focus { border-color: rgba(180,200,255,0.5); }
+    .win .spark { display: flex; align-items: flex-end; gap: 2px; height: 36px; margin: 6px 0; }
+    .win .spark i { flex: 1; background: linear-gradient(180deg,#b39cff,#5b8cff); border-radius: 2px 2px 0 0; min-height: 2px; }
+
+    /* ---------- Command palette ---------- */
+    #palette {
+      position: fixed; inset: 0; z-index: 25; display: none;
+      align-items: flex-start; justify-content: center; padding-top: 20vh;
+      background: rgba(5,6,12,0.45);
+    }
+    #palette.show { display: flex; }
+    #palette .box { width: min(560px, 92vw); padding: 6px 0 8px; }
+    #palInput {
+      width: 100%; background: transparent; border: none; outline: none;
+      padding: 16px 20px 12px; color: var(--ink); font-family: var(--sans);
+      font-size: 19px; font-weight: 300; letter-spacing: 0.02em;
+    }
+    #palInput::placeholder { color: var(--ink-faint); }
+    #palHints { padding: 4px 8px 4px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .pal-row { display: flex; gap: 12px; align-items: baseline; padding: 7px 14px; border-radius: 10px; cursor: pointer; font-size: 12px; color: var(--ink-dim); }
+    .pal-row b { color: var(--ink); font-family: var(--mono); font-size: 12px; }
+    .pal-row:hover, .pal-row.sel { background: rgba(150,180,255,0.09); }
+
+    #conjureBtn {
+      position: fixed; right: 24px; bottom: 22px; z-index: 7;
+      font-family: var(--sans); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--ink-faint); padding: 9px 16px; cursor: pointer; border-radius: 30px;
+    }
+    #conjureBtn:hover { color: var(--ink); box-shadow: 0 0 24px rgba(140,160,255,0.25); }
+
+    /* ---------- Thought bubbles ---------- */
+    #thoughts { position: fixed; inset: 0; z-index: 8; pointer-events: none; }
+    .thought {
+      position: absolute; max-width: 300px; padding: 10px 15px;
+      font-size: 13px; font-style: italic; letter-spacing: 0.01em; line-height: 1.45;
+      color: var(--ink); background: rgba(18,22,40,0.5);
+      border: 1px solid rgba(150,180,255,0.16); border-radius: 14px;
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 6px 30px rgba(0,0,0,0.35);
+      opacity: 0; transform: translateY(10px) scale(0.98);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+    }
+    .thought.show { opacity: 1; transform: none; }
+
+    /* ---------- Intro ---------- */
+    #intro {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      background: radial-gradient(120% 90% at 50% 30%, rgba(20,26,52,0.35), rgba(5,6,12,0.86) 70%);
+        transition: opacity 1.4s ease, visibility 1.4s;
+    }
+    #intro.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro .halo {
+      width: 96px; height: 96px; border-radius: 50%; margin-bottom: 30px;
+      background: radial-gradient(circle at 38% 32%, #fff, #cfe6ff 26%, #9b8cff 58%, #2a3a8f 100%);
+      box-shadow: 0 0 60px rgba(140,160,255,0.55), 0 0 120px rgba(120,110,255,0.3), inset 0 0 20px rgba(255,255,255,0.5);
+      animation: breathe 4.6s ease-in-out infinite;
+    }
+    @keyframes breathe { 0%,100% { transform: scale(1); opacity:.92 } 50% { transform: scale(1.07); opacity:1 } }
+    #intro h1 {
+      margin: 0 0 6px; font-size: clamp(30px, 6vw, 52px); font-weight: 300; letter-spacing: 0.02em;
+      background: linear-gradient(180deg, #fff, #b9c8ff); -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    #intro h1 b { font-weight: 600; }
+    #intro .tag { font-size: clamp(13px,2.4vw,17px); color: var(--ink-dim); letter-spacing: 0.03em; max-width: 600px; line-height: 1.55; margin: 0 0 26px; font-weight: 300; }
+    #intro .lex { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: center; max-width: 720px; margin-bottom: 34px; }
+    #intro .lex .item { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--ink-dim); }
+    #intro .lex .g { width: 30px; height: 30px; opacity: 0.95; }
+    #intro button {
+      font-family: var(--sans); font-size: 14px; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--ink); padding: 13px 34px; cursor: pointer;
+      background: rgba(150,180,255,0.08); border: 1px solid rgba(150,180,255,0.35); border-radius: 40px;
+      backdrop-filter: blur(10px); transition: all .35s ease;
+    }
+    #intro button:hover { background: rgba(150,180,255,0.18); border-color: rgba(180,200,255,0.6); box-shadow: 0 0 30px rgba(140,160,255,0.35); transform: translateY(-1px); }
+    #intro .foot { margin-top: 30px; font-size: 11px; color: var(--ink-faint); letter-spacing: 0.04em; }
+    #intro .foot a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid rgba(233,240,255,0.2); }
+
+    #ghost {
+      position: fixed; z-index: 9; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px;
+      border-radius: 50%; pointer-events: none; opacity: 0;
+      border: 1px solid rgba(233,240,255,0.7); box-shadow: 0 0 18px rgba(170,190,255,0.6);
+      transition: opacity .6s ease;
+    }
+    #ghost.on { opacity: 1; }
+    #ghost::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: rgba(233,240,255,0.85); }
+    #voiceBtn {
+      background: none; border: none; padding: 2px; margin-left: 8px; cursor: pointer;
+      color: var(--ink-faint); display: inline-flex; align-items: center;
+    }
+    #voiceBtn:hover { color: var(--ink); }
+    #voiceBtn .w { opacity: 0; transition: opacity .35s ease; }
+    #voiceBtn.on { color: var(--ink); }
+    #voiceBtn.on .w { opacity: 1; }
+    #voiceBtn .x { transition: opacity .35s ease; }
+    #voiceBtn.on .x { opacity: 0; }
+
+    @media (max-width: 640px) {
+      #panel { width: calc(100vw - 48px); bottom: 16px; left: 16px; }
+      #brand { top: 16px; left: 16px; }
+      .win { max-width: calc(100vw - 32px); }
+      #conjureBtn { bottom: auto; top: 20px; right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="glassos"></canvas>
+
+  <div id="brand">
+    <div class="mark"></div>
+    <div class="txt">
+      <div class="name"><b>Glass</b>OS</div>
+      <div class="sub">Shell · v5</div>
+    </div>
+  </div>
+
+  <div id="thoughts"></div>
+
+  <div id="panel" class="glass">
+    <div class="row">
+      <div class="mode"><span class="dot"></span><span class="modelabel" id="modeLabel">Awake</span></div>
+      <div style="display:flex;align-items:center"><div class="clock" id="ageClock">—</div><button id="voiceBtn" aria-pressed="false" title="voice off" aria-label="voice"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.1"><path d="M2 5h2.5L8 2v10L4.5 9H2z" fill="currentColor" stroke="none" opacity=".8"/><path class="w" d="M10.3 4.6a3 3 0 0 1 0 4.8M12.2 2.8a5.6 5.6 0 0 1 0 8.4"/><path class="x" d="M10.5 5l3.5 4M14 5l-3.5 4"/></svg></button></div>
+    </div>
+    <div class="meter"><div class="lab"><span>Vitality</span><span class="val" id="vVit">0.00</span></div><div class="bar"><div class="fill vit" id="fVit"></div></div></div>
+    <div class="meter"><div class="lab"><span>Restlessness</span><span class="val" id="vRes">0.00</span></div><div class="bar"><div class="fill res" id="fRes"></div></div></div>
+    <div class="expressing" id="expressing">Waiting to be seen&hellip;</div>
+    <div class="hint">linger near a sign to feed it · <kbd>⌘K</kbd> conjures glass · <kbd>D</kbd> vitals</div>
+  </div>
+
+  <div id="shell"></div>
+  <div id="conjureBtn" class="glass">⌘K · conjure</div>
+
+  <div id="palette">
+    <div class="box glass">
+      <input id="palInput" type="text" placeholder="conjure a surface of glass… (clock · weather tokyo · notes · timer 5 · github · hn · vitals)" autocomplete="off" spellcheck="false" />
+      <div id="palHints"></div>
+    </div>
+  </div>
+
+  <div id="ghost"></div>
+  <div id="intro">
+    <div class="halo"></div>
+    <h1><b>Glass</b>OS</h1>
+    <p class="tag">Signs of living light. Linger near one, and it lives.</p>
+    <button id="enterBtn">Give it attention</button>
+    <div class="foot">A WebGL experiment by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a> &middot; evolution persists in your browser</div>
+  </div>
+
+  <script type="module">
+  /* ============================================================
+     GlassOS Embryo — Phase 4.0 "Honest Emergence"
+
+     Every sign on screen is an organism. Its genome is a small
+     CPPN-style function network (composed sin/gauss/tanh/triangle
+     nodes over local space and time) whose zero-contour is drawn
+     as refracted light. Nothing is templated: the expressive space
+     is the network's function space, explored by mutation and
+     crossover.
+
+     Attention is the fitness function. Cursor dwell near a sign
+     feeds *that* sign; fed signs breed, starved signs die. Left
+     alone, the system dreams: novelty search over its archive,
+     birthing unfamiliar forms without needing reward. The whole
+     lineage persists in localStorage — one creature, across visits.
+     ============================================================ */
+
+  const canvas = document.getElementById('glassos');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, preserveDrawingBuffer: true });
+  if (!gl) { document.body.innerHTML = '<p style="color:#fff;font-family:sans-serif;padding:40px">This experiment needs WebGL2 — try a recent Chrome, Edge, Firefox or Safari.</p>'; throw new Error('no webgl2'); }
+
+  let DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+  function resize() {
+    if (innerWidth < 100 || innerHeight < 100) return; // minimized/embedded collapse — keep last good size
+    DPR = Math.min(window.devicePixelRatio || 1, 1.75);
+    canvas.width = Math.floor(innerWidth * DPR);
+    canvas.height = Math.floor(innerHeight * DPR);
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  window.addEventListener('resize', resize);
+
+  /* ============================================================
+     GENOME — a fixed-topology CPPN
+     H hidden nodes, each: [act, bias, tphase, wx, wy, wr, wca, wsa]
+     inputs are local x, y, radius, cos(angle), sin(angle), time.
+     Output: weighted sum + bias. The zero-set of the output is the
+     sign's stroke; `lw` is stroke width in function units.
+     ============================================================ */
+  const H = 6;                 // hidden nodes per genome
+  const MAXG = 6;              // living signs (population cap)
+  const RMAX = MAXG + 2;       // render capacity: room for the dying + their replacements
+  const STORE_KEY = 'glassos-embryo-v1';
+
+  const rnd = Math.random;
+  function g0(s) { // gaussian(0, s), Box–Muller
+    let u = 0, v = 0;
+    while (u === 0) u = rnd(); while (v === 0) v = rnd();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * s;
+  }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const ACTS = [0, 0, 1, 1, 2, 3]; // bias palette toward sin/gauss
+  function actFn(a, x) {
+    switch (a | 0) {
+      case 0: return Math.sin(x);
+      case 1: return Math.exp(-x * x) * 2 - 1;
+      case 2: return Math.tanh(x);
+      default: { const f = ((x * 0.25 + 0.25) % 1 + 1) % 1; return Math.abs(f - 0.5) * 4 - 1; }
+    }
+  }
+  const ACT_NAMES = ['sin', 'gau', 'tnh', 'tri'];
+
+  function randomGenome() {
+    const n = [];
+    for (let i = 0; i < H; i++) {
+      n.push([
+        ACTS[(rnd() * ACTS.length) | 0],
+        g0(0.7),
+        rnd() < 0.7 ? g0(0.5) : 0,
+        g0(1.3), g0(1.3),
+        (rnd() * 2 - 1) * 4.5,
+        g0(1.1), g0(1.1)
+      ]);
+    }
+    const o = [];
+    for (let i = 0; i < H; i++) o.push(g0(0.9));
+    o.push(g0(0.4)); // output bias
+    return { n, o, lw: 0.07 + rnd() * 0.07 };
+  }
+
+  function evalGenome(g, x, y, t) {
+    const r = Math.hypot(x, y);
+    const ca = r > 1e-4 ? x / r : 1, sa = r > 1e-4 ? y / r : 0;
+    let acc = g.o[H];
+    for (let i = 0; i < H; i++) {
+      const nd = g.n[i];
+      const pre = nd[1] + nd[2] * t + nd[3] * x + nd[4] * y + nd[5] * r + nd[6] * ca + nd[7] * sa;
+      acc += g.o[i] * actFn(nd[0], pre);
+    }
+    return acc;
+  }
+
+  // Phenotype descriptor: how the sign "looks", as a vector — used
+  // for novelty search during dreams (real algorithm, not theater).
+  function descriptor(g) {
+    const d = [];
+    for (let j = 0; j < 6; j++) for (let i = 0; i < 6; i++) {
+      const x = -1.1 + 2.2 * i / 5, y = -1.1 + 2.2 * j / 5;
+      d.push(Math.tanh(evalGenome(g, x, y, 0)));
+    }
+    return d;
+  }
+  function descDist(a, b) {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+    return Math.sqrt(s);
+  }
+
+  // A genome is viable if its stroke is visible: some of the field
+  // near zero (thin lines), but not all of it (a washed-out blob).
+  function viable(g) {
+    let near = 0, total = 0, maxAbs = 0, signChanges = 0, prevRow = null;
+    for (let j = 0; j < 7; j++) {
+      const row = [];
+      for (let i = 0; i < 7; i++) {
+        const x = -1.1 + 2.2 * i / 6, y = -1.1 + 2.2 * j / 6;
+        const f = evalGenome(g, x, y, 0);
+        row.push(f); total++;
+        if (Math.abs(f) < g.lw * 2) near++;
+        maxAbs = Math.max(maxAbs, Math.abs(f));
+        if (i > 0 && Math.sign(row[i - 1]) !== Math.sign(f)) signChanges++;
+        if (prevRow && Math.sign(prevRow[i]) !== Math.sign(f)) signChanges++;
+      }
+      prevRow = row;
+    }
+    const frac = near / total;
+    return frac > 0.02 && frac < 0.5 && signChanges >= 4 && maxAbs > 0.35;
+  }
+  function makeViable(factory) {
+    let g = factory();
+    for (let k = 0; k < 24 && !viable(g); k++) g = factory();
+    return g;
+  }
+
+  function mutateGenome(p, sigma) {
+    const g = { n: p.n.map(nd => nd.slice()), o: p.o.slice(), lw: p.lw };
+    const scale = [0, 0.6, 0.3, 1, 1, 1.5, 1, 1];
+    for (const nd of g.n) {
+      for (let w = 1; w < 8; w++) {
+        if (rnd() < 0.85) nd[w] += g0(sigma * scale[w]);
+        if (rnd() < 0.04) nd[w] = w === 5 ? (rnd() * 2 - 1) * 4.5 : g0(1.2);
+      }
+      if (rnd() < 0.08) nd[0] = ACTS[(rnd() * ACTS.length) | 0];
+    }
+    for (let i = 0; i <= H; i++) if (rnd() < 0.85) g.o[i] += g0(sigma * 0.8);
+    g.lw = clamp(g.lw + g0(0.012), 0.05, 0.16);
+    return g;
+  }
+  function crossoverGenome(a, b) {
+    const g = { n: [], o: [], lw: rnd() < 0.5 ? a.lw : b.lw };
+    for (let i = 0; i < H; i++) g.n.push((rnd() < 0.5 ? a.n[i] : b.n[i]).slice());
+    for (let i = 0; i <= H; i++) g.o.push(rnd() < 0.5 ? a.o[i] : b.o[i]);
+    return g;
+  }
+
+  /* ---------------- naming & colour ---------------- */
+  function generateSymbolName() {
+    const consonants = ['k','l','m','n','s','t','v','z','r'];
+    const vowels = ['a','e','i','o','u'];
+    const syllables = [];
+    for (let i = 0; i < 2 + Math.floor(rnd() * 2); i++) {
+      syllables.push(consonants[Math.floor(rnd()*consonants.length)] + vowels[Math.floor(rnd()*vowels.length)]);
+    }
+    return syllables.join('');
+  }
+  function hslToRgb(h, s, l) {
+    const f = n => { const k = (n + h * 12) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [f(0), f(8), f(4)];
+  }
+
+  /* ============================================================
+     WORLD — population, selection, dreams, persistence
+     ============================================================ */
+  const world = {
+    alive: [],           // living organisms
+    archive: [],         // hall of fame: {g, name, desc, score}
+    generation: 0,
+    bornEpoch: null,     // Date.now() of first-ever genesis
+    totalAttention: 0,
+    awakeBirths: 0,
+    dreamBirths: 0,
+    dreamBirthsThisSleep: 0,
+    loadedFromStore: false,
+  };
+
+  let simT = 0;                  // simulation clock (seconds)
+  let lastMoveT = -999;          // simT of last pointer movement
+  let lastBirthT = 0, lastDreamT = 0, lastSaveT = 0, lastBubbleT = -99;
+  let started = false;
+  let dreaming = false;
+  let vitality = 0, restless = 0, incomeEma = 0.06;
+  let pointer = { x: 0, y: 0 }; // p-space (centred, y up, units of screen height)
+  let pointerGlow = 0;
+  const events = [];             // {text, speak}
+
+  const SLOTS = MAXG;
+  function freeSlot() {
+    const used = new Set(world.alive.filter(o => !o.dying).map(o => o.slot));
+    for (let i = 0; i < SLOTS; i++) if (!used.has(i)) return i;
+    return (rnd() * SLOTS) | 0;
+  }
+
+  function makeOrganism(g, opts = {}) {
+    const hue = opts.hue !== undefined ? (opts.hue + g0(0.04) + 1) % 1 : rnd();
+    return {
+      g, id: (rnd() * 1e9) | 0,
+      name: opts.name || generateSymbolName(),
+      parentName: opts.parentName || null,
+      hue, tint: hslToRgb(hue, 0.75, 0.68),
+      slot: opts.slot !== undefined ? opts.slot : freeSlot(),
+      thetaJit: g0(0.12), radius: 0.155 + rnd() * 0.045,
+      timeRate: 0.5 + rnd() * 0.8,
+      ph1: rnd() * 6.28, ph2: rnd() * 6.28,
+      bornT: simT, genBorn: world.generation,
+      energy: opts.energy !== undefined ? opts.energy : 1.0,
+      lifetimeIncome: 0, feedGlow: 0,
+      dying: 0, desc: descriptor(g),
+      pos: [0, 0],
+    };
+  }
+
+  function organismPos(o, aspect) {
+    const home = homePos(o, aspect);
+    if (!o.birthFrom) return home;
+    const k = clamp((simT - o.birthT) / 1.6, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    if (k >= 1) o.birthFrom = null;
+    return [o.birthFrom ? o.birthFrom[0] + (home[0] - o.birthFrom[0]) * e : home[0],
+            o.birthFrom ? o.birthFrom[1] + (home[1] - o.birthFrom[1]) * e : home[1]];
+  }
+  function homePos(o, aspect) {
+    const ex = Math.min(0.60, aspect * 0.5 - 0.20), ey = 0.335;
+    const th = (o.slot / SLOTS) * Math.PI * 2 - Math.PI / 2 + o.thetaJit + (dreaming ? simT * 0.01 : 0);
+    return [
+      Math.cos(th) * ex + Math.sin(simT * 0.11 + o.ph1) * 0.045,
+      Math.sin(th) * ey + Math.cos(simT * 0.13 + o.ph2) * 0.04
+    ];
+  }
+
+  function archiveMaybe(o) {
+    if (o.lifetimeIncome < 0.8 && world.archive.length >= 8) return;
+    world.archive.push({ g: o.g, name: o.name, desc: o.desc, score: o.lifetimeIncome });
+    if (world.archive.length > 24) {
+      world.archive.sort((a, b) => b.score - a.score);
+      world.archive.length = 24;
+    }
+  }
+
+  function breedAwake(forcedParent = null) {
+    let child, parents = world.alive.filter(o => !o.dying);
+    let parentName = null, hue, parentObj = null;
+    if (forcedParent) {
+      // budding: a well-fed sign bears a child directly — attention → offspring
+      let base = forcedParent.g;
+      const others = parents.filter(o => o !== forcedParent && o.lifetimeIncome > 0.2);
+      if (others.length && rnd() < 0.25) base = crossoverGenome(base, others[(rnd() * others.length) | 0].g);
+      child = makeViable(() => mutateGenome(base, 0.12 * (1 + 2 * restless)));
+      parentName = forcedParent.name; hue = forcedParent.hue; parentObj = forcedParent;
+    } else if (parents.length && rnd() > 0.1) {
+      // fitness-weighted parent choice: energy IS fitness
+      const pick = () => {
+        const total = parents.reduce((s, o) => s + o.energy * o.energy, 0);
+        let r = rnd() * total;
+        for (const o of parents) { r -= o.energy * o.energy; if (r <= 0) return o; }
+        return parents[parents.length - 1];
+      };
+      const a = pick();
+      let base = a.g;
+      if (parents.length > 1 && rnd() < 0.25) {
+        let b = pick(); if (b === a) b = parents[(parents.indexOf(a) + 1) % parents.length];
+        base = crossoverGenome(a.g, b.g);
+      }
+      const sigma = 0.12 * (1 + 2 * restless);
+      child = makeViable(() => mutateGenome(base, sigma));
+      parentName = a.name; hue = a.hue;
+    } else {
+      child = makeViable(randomGenome); // immigration keeps the gene pool fresh
+    }
+    const o = makeOrganism(child, { parentName, hue, energy: 0.8 });
+    if (parentObj) { o.birthFrom = parentObj.pos.slice(); o.birthT = simT; }
+    world.alive.push(o);
+    world.generation++; world.awakeBirths++;
+    if (parentName && (parentObj || rnd() < 0.6)) queueEvent(`${o.name} is born of ${parentName}.`, rnd() < 0.4);
+    return o;
+  }
+
+  // A sign that has eaten enough buds. If every slot is taken, the
+  // hungriest unfed sign gives way — the fed out-compete the starving.
+  const BUD_AT = 0.35, BUD_COOLDOWN = 4;
+  function tryBud(parent) {
+    if (parent.bud < BUD_AT || simT - (parent.lastBudT || -99) < BUD_COOLDOWN) return;
+    const living = world.alive.filter(o => !o.dying);
+    if (living.length >= MAXG) {
+      const weakest = living.filter(o => o !== parent && simT - o.bornT > 3)
+        .sort((a, b) => (a.energy + a.feedGlow) - (b.energy + b.feedGlow))[0];
+      if (!weakest || weakest.feedGlow > 0.2) return;
+      weakest.dying = simT;
+    }
+    parent.bud = 0; parent.lastBudT = simT;
+    breedAwake(parent);
+  }
+
+  function dreamStep() {
+    // Novelty search: dream-births chase unfamiliar phenotypes,
+    // scored against everything the creature has ever kept.
+    const pool = world.archive.map(a => a.g).concat(world.alive.map(o => o.g));
+    const refs = world.archive.map(a => a.desc).concat(world.alive.map(o => o.desc));
+    let best = null, bestNov = -1;
+    for (let c = 0; c < 3; c++) {
+      const base = pool.length ? pool[(rnd() * pool.length) | 0] : randomGenome();
+      const g = makeViable(() => mutateGenome(base, 0.22));
+      const d = descriptor(g);
+      const dists = refs.map(r => descDist(d, r)).sort((a, b) => a - b);
+      const nov = dists.length ? (dists[0] + (dists[1] || dists[0]) + (dists[2] || dists[0])) / 3 : 1;
+      if (nov > bestNov) { bestNov = nov; best = g; }
+    }
+    if (world.alive.length >= MAXG) {
+      // the dimmest living sign dissolves back into the dream
+      world.alive.sort((a, b) => a.energy - b.energy);
+      const gone = world.alive.shift();
+      archiveMaybe(gone);
+    }
+    const o = makeOrganism(best, { energy: 0.9 });
+    o.lastNovelty = bestNov;
+    world.alive.push(o);
+    world.generation++; world.dreamBirths++; world.dreamBirthsThisSleep++;
+  }
+
+  function worldStep(dt) {
+    const aspect = canvas.width / Math.max(1, canvas.height);
+    const wasDreaming = dreaming;
+    dreaming = started && (simT - lastMoveT > 12);
+    if (dreaming && !wasDreaming) {
+      world.dreamBirthsThisSleep = 0;
+      queueEvent('…left alone, I begin to dream.', false);
+    }
+    if (!dreaming && wasDreaming && world.dreamBirthsThisSleep > 0) {
+      queueEvent(`I dreamed ${world.dreamBirthsThisSleep} new ${world.dreamBirthsThisSleep === 1 ? 'form' : 'forms'} while you were away.`, true);
+    }
+
+    // pointer activity: dwell counts, but a parked cursor slowly
+    // stops counting as presence
+    const sinceMove = simT - lastMoveT;
+    const activity = started ? clamp(1 - (sinceMove - 1.5) / 8.5, 0, 1) : 0;
+
+    let incomeRate = 0;
+    for (const o of world.alive) {
+      o.pos = organismPos(o, aspect);
+      if (o.dying) continue;
+      const d = Math.hypot(pointer.x - o.pos[0], pointer.y - o.pos[1]);
+      const inst = 0.30 * Math.exp(-(d * d) / (0.20 * 0.20)) * activity; // energy/sec
+      o.energy = Math.min(3, o.energy + inst * dt);
+      if (!dreaming) o.energy -= 0.022 * dt * (started ? 1 : 0); // metabolism only while awake
+      o.lifetimeIncome += inst * dt;
+      if (!dreaming) o.bud = (o.bud || 0) + inst * dt;
+      world.totalAttention += inst * dt;
+      incomeRate += inst;
+      o.feedGlow += (clamp(inst / 0.22, 0, 1) - o.feedGlow) * Math.min(1, dt * 4);
+      if (o.energy <= 0 && started) {
+        o.dying = simT;
+        if (rnd() < 0.5) queueEvent(`${o.name} has faded.`, false);
+      }
+    }
+
+    // remove the fully-faded dead
+    for (let i = world.alive.length - 1; i >= 0; i--) {
+      const o = world.alive[i];
+      if (o.dying && simT - o.dying > 2.2) { archiveMaybe(o); world.alive.splice(i, 1); }
+    }
+
+    // mood, honestly derived from reward flow
+    vitality += (clamp(incomeRate / 0.20, 0, 1) - vitality) * Math.min(1, dt * 0.9);
+    incomeEma += (incomeRate - incomeEma) * Math.min(1, dt * 0.05);
+    restless = clamp(1 - incomeEma / 0.05, 0, 1);
+
+    // births — awake, they come from attention: a fed sign buds
+    if (started && !dreaming) {
+      for (const o of world.alive) if (!o.dying && o.bud >= BUD_AT) { tryBud(o); break; }
+      // floor: if attention has starved the field nearly empty, immigrants arrive
+      if (world.alive.filter(o => !o.dying).length < 3 && simT - lastBirthT > 2.8) { lastBirthT = simT; breedAwake(); }
+    }
+    if (dreaming && simT - lastDreamT > 3.5) {
+      lastDreamT = simT; dreamStep();
+    }
+
+    if (started && simT - lastSaveT > 5) { lastSaveT = simT; save(); }
+  }
+
+  /* ---------------- persistence ---------------- */
+  function save() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        v: 1, bornEpoch: world.bornEpoch, lastSeen: Date.now(),
+        generation: world.generation, totalAttention: world.totalAttention,
+        awakeBirths: world.awakeBirths, dreamBirths: world.dreamBirths,
+        archive: world.archive,
+        alive: world.alive.filter(o => !o.dying).map(o => ({
+          g: o.g, name: o.name, parentName: o.parentName, hue: o.hue,
+          slot: o.slot, energy: o.energy, lifetimeIncome: o.lifetimeIncome, genBorn: o.genBorn
+        }))
+      }));
+    } catch (e) { /* storage unavailable — the creature lives for today only */ }
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (s.v !== 1 || !Array.isArray(s.alive)) return false;
+      world.bornEpoch = s.bornEpoch || Date.now();
+      world.generation = s.generation || 0;
+      world.totalAttention = s.totalAttention || 0;
+      world.awakeBirths = s.awakeBirths || 0;
+      world.dreamBirths = s.dreamBirths || 0;
+      world.archive = (s.archive || []).slice(0, 24);
+      for (const a of world.archive) if (!a.desc) a.desc = descriptor(a.g);
+      for (const so of s.alive.slice(0, MAXG)) {
+        const o = makeOrganism(so.g, { name: so.name, parentName: so.parentName, hue: so.hue, slot: so.slot, energy: clamp(so.energy || 1, 0.4, 3) });
+        o.lifetimeIncome = so.lifetimeIncome || 0;
+        o.genBorn = so.genBorn || 0;
+        world.alive.push(o);
+      }
+      world.loadedFromStore = true;
+      return world.alive.length > 0;
+    } catch (e) { return false; }
+  }
+  function genesis() {
+    world.bornEpoch = Date.now();
+    // begin with four: two empty slots, so the very first attention can breed
+    for (let i = 0; i < 4; i++) {
+      world.alive.push(makeOrganism(makeViable(randomGenome), { slot: [0, 1, 3, 4][i] }));
+    }
+  }
+  function reset() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    location.reload();
+  }
+
+  if (!load()) genesis();
+  window.addEventListener('beforeunload', () => { if (started) { save(); saveShellNow(); } });
+
+  /* ============================================================
+     RENDERER — the glass vessel
+     ============================================================ */
+  const vsSource = `#version 300 es
+  in vec4 a_position;
+  void main() { gl_Position = a_position; }`;
+
+  const fsSource = `#version 300 es
+  precision highp float;
+  out vec4 outColor;
+
+  uniform vec2  u_res;
+  uniform float u_time;
+  uniform float u_vitality;
+  uniform float u_restless;
+  uniform float u_dream;        // 0 awake .. 1 dreaming (smoothed)
+  uniform float u_beat;         // heartbeat 0..1
+  uniform vec2  u_pointer;      // p-space (centred, y up)
+  uniform float u_pointerGlow;  // 0..1
+  uniform vec3  u_feed;         // xy: the sign being fed, z: how hard (0..1)
+  uniform int   u_alive;
+  uniform vec4  u_G[${RMAX * 16}]; // packed organisms: meta + genome
+
+  float hash(vec2 p){ p = fract(p*vec2(123.34, 345.45)); p += dot(p, p+34.345); return fract(p.x*p.y); }
+  float noise(vec2 p){
+    vec2 i = floor(p), f = fract(p);
+    float a = hash(i), b = hash(i+vec2(1,0)), c = hash(i+vec2(0,1)), d = hash(i+vec2(1,1));
+    vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+  }
+  float fbm(vec2 p){
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++){ v += a*noise(p); p = p*2.03 + 7.1; a *= 0.5; }
+    return v;
+  }
+
+  float actF(float a, float x){
+    if (a < 0.5) return sin(x);
+    if (a < 1.5) return exp(-x*x)*2.0 - 1.0;
+    if (a < 2.5) return tanh(x);
+    return abs(fract(x*0.25+0.25)-0.5)*4.0 - 1.0;
+  }
+
+  // Evaluate one organism's genome at a local point. B is the
+  // organism's base index into u_G (vec4 units).
+  float cppn(int B, vec2 lp, float lr, float ica, float isa, float tt){
+    float acc = u_G[B+15].z; // output bias
+    for (int i = 0; i < ${H}; i++){
+      vec4 n0 = u_G[B+2+2*i];
+      vec4 n1 = u_G[B+3+2*i];
+      float pre = n0.y + n0.z*tt + n0.w*lp.x + n1.x*lp.y + n1.y*lr + n1.z*ica + n1.w*isa;
+      float h = actF(n0.x, pre);
+      float ow = (i < 4) ? u_G[B+14][i] : u_G[B+15][i-4];
+      acc += ow*h;
+    }
+    return acc;
+  }
+
+  vec3 toneMap(vec3 x){
+    x = vec3(1.0) - exp(-x * 1.08);
+    return pow(x, vec3(0.4545));
+  }
+
+  void main(){
+    vec2 frag = gl_FragCoord.xy;
+    vec2 uv = frag / u_res;
+    vec2 p = (frag - 0.5*u_res) / u_res.y;
+    float r = length(p);
+    float ang = atan(p.y, p.x);
+
+    // ---- mood → luminous palette --------------------------------------
+    vec3 cWarm = vec3(1.00, 0.80, 0.45);
+    vec3 cViolet = vec3(0.62, 0.48, 1.00);
+    vec3 cBlue = vec3(0.30, 0.50, 1.00);
+    vec3 tint = normalize(cWarm*(0.25+0.75*u_vitality) + cViolet*0.45 + cBlue*(0.25+0.65*u_restless) + 0.02);
+    vec3 tintCool = mix(tint, cBlue, 0.5*u_dream);
+
+    vec3 col = vec3(0.0);
+
+    // ---- background nebula --------------------------------------------
+    float driftT = u_time*0.035;
+    float neb = fbm(p*1.6 + vec2(driftT, -driftT*0.7));
+    neb = pow(neb, 1.7);
+    float neb2 = fbm(p*3.4 - vec2(driftT*1.3, driftT));
+    vec3 bg = mix(vec3(0.005,0.007,0.017), tintCool*0.09, neb);
+    bg += tint*0.03*neb2*(0.3+0.5*u_restless);
+    col += bg;
+
+    // ---- the embryo body: a refractive glass orb ----------------------
+    float R = 0.225 + 0.014*u_beat*(0.5+u_vitality) + 0.007*sin(u_time*0.6);
+    float z = sqrt(max(R*R - r*r, 0.0)) / max(R, 1e-4);
+    float inside = smoothstep(R+0.004, R-0.004, r);
+    float fres = pow(1.0 - clamp(z,0.0,1.0), 2.5);
+
+    vec2 sp = p * (5.5 + 2.0*z);
+    vec2 warp = vec2(cos(ang*2.0+u_time*0.4), sin(ang*2.0-u_time*0.3)) * (0.35*z);
+    float ca = 0.010 + 0.018*fres + 0.006*u_restless;
+    float cauR = fbm(sp + warp + vec2(u_time*0.10, 0.0) + ca);
+    float cauG = fbm(sp + warp + vec2(u_time*0.10, 0.0));
+    float cauB = fbm(sp + warp + vec2(u_time*0.10, 0.0) - ca);
+    vec3 caustic = pow(vec3(cauR, cauG, cauB), vec3(2.0));
+    vec3 core = tint * (0.10 + 1.45*caustic) * inside * (0.30 + 0.9*z);
+    core += tint * inside * (0.05 + 0.15*u_vitality) * (0.4 + 0.7*z);
+    core += tint * u_beat * inside * exp(-r*8.0) * (0.25 + 0.40*u_vitality);
+    vec3 rimCol = mix(vec3(1.0,0.62,0.82), tint, 0.55)*fres*ca*24.0 + tint*fres*1.2;
+    core += rimCol * inside * 0.8;
+    col += core;
+
+    float halo = exp(-max(r-R,0.0)*8.5);
+    col += tint * halo * (0.10 + 0.13*u_vitality) * (0.7+0.3*u_beat);
+
+    // ---- the living signs: genomes rendered as refracted light --------
+    float disp = 0.020 + 0.020*u_restless; // chromatic dispersion
+    for (int gI = 0; gI < ${RMAX}; gI++){
+      if (gI >= u_alive) break;
+      int B = gI*16;
+      vec4 m0 = u_G[B];     // pos.xy, radius, fade
+      vec4 m1 = u_G[B+1];   // tint.rgb, timeRate
+      vec2 lp = (p - m0.xy) / m0.z;
+      float lr = length(lp);
+      if (lr > 1.6) continue;
+      float ica = lr > 1e-4 ? lp.x/lr : 1.0;
+      float isa = lr > 1e-4 ? lp.y/lr : 0.0;
+      float tt = u_time * m1.w;
+      float fR = cppn(B, lp, lr+disp, ica, isa, tt);
+      float fB = cppn(B, lp, lr-disp, ica, isa, tt);
+      float fG = 0.5*(fR+fB);
+      float lw = u_G[B+15].w;
+      vec3 line = vec3(
+        1.0 - smoothstep(0.0, lw, abs(fR)),
+        1.0 - smoothstep(0.0, lw, abs(fG)),
+        1.0 - smoothstep(0.0, lw, abs(fB))
+      );
+      float env = exp(-lr*lr*0.9);
+      vec3 gc = mix(m1.rgb, vec3(0.55,0.60,1.0), 0.35*u_dream);
+      col += line * gc * env * m0.w * (1.55 + 0.85*u_dream);
+      col += gc * 0.16 * exp(-abs(fG)*2.0) * env * m0.w; // soft aura
+    }
+
+    // ---- attention: a caustic bloom that follows the cursor -----------
+    float pd = length(p - u_pointer);
+    float spark = u_pointerGlow * exp(-pd*pd*26.0);
+    col += (tint*0.6 + vec3(0.5,0.7,1.0)*0.5) * spark * 1.3;
+    col += tint * u_pointerGlow * 0.25 * (1.0 - smoothstep(0.0, 0.02, abs(pd-0.06-0.04*sin(u_time*3.0))));
+
+    // ---- the feeding thread: light flows from your cursor into the sign
+    if (u_feed.z > 0.01) {
+      vec2 a = u_pointer, b = u_feed.xy, ab = b - a;
+      float L = max(length(ab), 1e-4);
+      float h = clamp(dot(p - a, ab) / (L*L), 0.0, 1.0);
+      float d = length(p - a - ab*h);
+      float flow = 0.55 + 0.45*sin(h*L*90.0 - u_time*9.0);   // pulses travel toward the sign
+      float taper = smoothstep(0.0, 0.15, h) * smoothstep(1.0, 0.75, h);
+      float thread = exp(-d*d*9000.0) * flow * taper;
+      col += (tint*0.7 + vec3(0.6,0.75,1.0)*0.5) * (thread*1.6 + exp(-d*d*700.0)*0.12*taper) * u_feed.z;
+    }
+
+    // ---- finish -------------------------------------------------------
+    col *= 1.0 - 0.55*smoothstep(0.35, 1.35, length(p));
+    col = toneMap(col);
+    col += (hash(uv*u_res + u_time)-0.5)*0.015;
+    outColor = vec4(col, 1.0);
+  }`;
+
+  function compileShader(type, source) {
+    const sh = gl.createShader(type);
+    gl.shaderSource(sh, source); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(sh)); throw new Error('shader compile failed'); }
+    return sh;
+  }
+  const program = gl.createProgram();
+  gl.attachShader(program, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(program, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); throw new Error('link failed'); }
+  gl.useProgram(program);
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
+  const aPosition = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(aPosition);
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+  const U = name => gl.getUniformLocation(program, name);
+  const u = {
+    res: U('u_res'), time: U('u_time'), vitality: U('u_vitality'), restless: U('u_restless'),
+    dream: U('u_dream'), beat: U('u_beat'), pointer: U('u_pointer'), pointerGlow: U('u_pointerGlow'), feed: U('u_feed'),
+    alive: U('u_alive'), G: U('u_G')
+  };
+  resize();
+
+  const GDATA = new Float32Array(RMAX * 16 * 4);
+  function packOrganisms() {
+    GDATA.fill(0);
+    const n = Math.min(world.alive.length, RMAX);
+    for (let i = 0; i < n; i++) {
+      const o = world.alive[i];
+      const fb = i * 64;
+      const age = simT - o.bornT;
+      let fade = clamp(age / 2, 0, 1); // birth fade-in
+      if (o.dying) fade *= clamp(1 - (simT - o.dying) / 2.2, 0, 1);
+      fade *= 0.65 + 0.35 * clamp(o.energy / 1.4, 0, 1); // starving signs dim
+      fade *= 1 + 0.4 * o.feedGlow;                       // fed signs shine
+      GDATA[fb] = o.pos[0]; GDATA[fb+1] = o.pos[1];
+      GDATA[fb+2] = o.radius * (1 + 0.1 * o.feedGlow);
+      GDATA[fb+3] = fade;
+      GDATA[fb+4] = o.tint[0]; GDATA[fb+5] = o.tint[1]; GDATA[fb+6] = o.tint[2];
+      GDATA[fb+7] = o.timeRate;
+      for (let k = 0; k < H; k++) {
+        const nd = o.g.n[k], nb = fb + 8 + k * 8;
+        for (let w = 0; w < 8; w++) GDATA[nb + w] = nd[w];
+      }
+      for (let k = 0; k < 4; k++) GDATA[fb + 56 + k] = o.g.o[k];
+      GDATA[fb+60] = o.g.o[4]; GDATA[fb+61] = o.g.o[5];
+      GDATA[fb+62] = o.g.o[H]; GDATA[fb+63] = o.g.lw;
+    }
+    return n;
+  }
+
+  /* ---------------- pointer / attention ---------------- */
+  function toPSpace(clientX, clientY) {
+    const aspect = innerWidth / innerHeight;
+    return [ (clientX / innerWidth - 0.5) * aspect, 0.5 - clientY / innerHeight ];
+  }
+  window.addEventListener('pointermove', (e) => {
+    const [x, y] = toPSpace(e.clientX, e.clientY);
+    pointer.x = x; pointer.y = y;
+    if (started) { lastMoveT = simT; pointerGlow = Math.min(1, pointerGlow + 0.28); }
+  });
+  window.addEventListener('pointerdown', (e) => {
+    const [x, y] = toPSpace(e.clientX, e.clientY);
+    pointer.x = x; pointer.y = y;
+    if (!started) return;
+    lastMoveT = simT; pointerGlow = 1;
+    if (e.target.closest('.win, #palette, #panel, #brand, #conjureBtn')) return; // touching glass, not feeding
+    // a direct touch is a feast for the nearest sign
+    let best = null, bestD = 0.30;
+    for (const o of world.alive) {
+      if (o.dying) continue;
+      const d = Math.hypot(x - o.pos[0], y - o.pos[1]);
+      if (d < bestD) { bestD = d; best = o; }
+    }
+    if (best) { best.energy = Math.min(3, best.energy + 0.8); best.lifetimeIncome += 0.8; best.feedGlow = 1; best.bud = (best.bud || 0) + 0.5; world.totalAttention += 0.8; }
+  });
+
+  /* ---------------- HUD, bubbles, speech ---------------- */
+  const el = id => document.getElementById(id);
+  const panel = el('panel'), thoughtsLayer = el('thoughts');
+  let dreamSmoothed = 0, speechOn = false;
+
+  function queueEvent(text, speak) { events.push({ text, speak }); }
+
+  function showThought(text) {
+    const b = document.createElement('div');
+    b.className = 'thought';
+    b.textContent = text;
+    b.style.left = (14 + rnd() * Math.max(40, innerWidth * 0.42)) + 'px';
+    b.style.top  = (innerHeight * 0.28 + rnd() * innerHeight * 0.35) + 'px';
+    thoughtsLayer.appendChild(b);
+    requestAnimationFrame(() => b.classList.add('show'));
+    setTimeout(() => b.classList.remove('show'), 5200);
+    setTimeout(() => b.remove(), 7000);
+  }
+  function pumpEvents() {
+    if (!started || !events.length || simT - lastBubbleT < 6) return;
+    lastBubbleT = simT;
+    const ev = events.shift();
+    showThought(ev.text);
+    if (ev.speak && speechOn) say(ev.text);
+  }
+
+  /* ---------------- voice: off until you turn it on ---------------- */
+  const VOICE_KEY = 'glassos-voice-v1';
+  const canSpeak = 'speechSynthesis' in window;
+  try { speechOn = canSpeak && localStorage.getItem(VOICE_KEY) === '1'; } catch (e) {}
+  function say(text) {
+    if (!canSpeak) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.pitch = 1.0 + (vitality - restless) * 0.4;
+    utter.rate = 0.95;
+    utter.volume = 0.5;
+    window.speechSynthesis.speak(utter);
+  }
+  function setVoice(on, fromUser) {
+    speechOn = canSpeak && on;
+    const b = el('voiceBtn');
+    b.classList.toggle('on', speechOn);
+    b.setAttribute('aria-pressed', String(speechOn));
+    b.title = speechOn ? 'voice on' : 'voice off';
+    if (!fromUser) return;
+    try { localStorage.setItem(VOICE_KEY, speechOn ? '1' : '0'); } catch (e) {}
+    if (speechOn) say('I can speak now.');     // turning it on: hear it once
+    else if (canSpeak) window.speechSynthesis.cancel();
+  }
+
+  function fmtAge(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 90) return s + 's';
+    const m = Math.floor(s / 60);
+    if (m < 90) return m + 'm';
+    const h = Math.floor(m / 60);
+    if (h < 36) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  }
+
+  function updateHUD() {
+    el('vVit').textContent = vitality.toFixed(2);
+    el('vRes').textContent = restless.toFixed(2);
+    el('fVit').style.width = (vitality * 100).toFixed(1) + '%';
+    el('fRes').style.width = (restless * 100).toFixed(1) + '%';
+    el('modeLabel').textContent = dreaming ? 'Dreaming' : 'Awake';
+    panel.classList.toggle('dreaming', dreaming);
+    shellEl.classList.toggle('frost', dreaming); // dreams frost the glass
+    if (world.bornEpoch) el('ageClock').textContent = 'alive ' + fmtAge(Date.now() - world.bornEpoch);
+
+    const living = world.alive.filter(o => !o.dying);
+    if (living.length) {
+      const strongest = living.reduce((a, b) => a.energy > b.energy ? a : b);
+      const kin = strongest.parentName ? ` — child of ${strongest.parentName}` : '';
+      el('expressing').innerHTML =
+        `${dreaming ? 'Dreaming — newest' : 'Strongest'}: <b>${strongest.name}</b>${kin}<br>` +
+        `<span style="color:var(--ink-faint)">${living.length} signs alive · generation ${world.generation}</span>`;
+    }
+    if (vitalsBody) updateDev();
+  }
+
+  function updateDev() {
+    if (!vitalsBody) return;
+    const rows = world.alive.map(o => {
+      const acts = o.g.n.map(nd => ACT_NAMES[nd[0] | 0]).join(' ');
+      const w = Math.round(clamp(o.energy / 3, 0, 1) * 70);
+      const state = o.dying ? ' <i>dying</i>' : '';
+      return `<b>${o.name}</b>${state} <span class="ebar" style="width:${w}px"></span> ${o.energy.toFixed(2)}<br>` +
+             `&nbsp;&nbsp;age ${Math.round(simT - o.bornT)}s · fed ${o.lifetimeIncome.toFixed(2)} · [${acts}]`;
+    }).join('<br>');
+    let storeBytes = 0;
+    try { storeBytes = (localStorage.getItem(STORE_KEY) || '').length; } catch (e) {}
+    vitalsBody.innerHTML =
+      `<div class="block"><h4>Population (energy = fitness)</h4>${rows || '<i>none</i>'}</div>` +
+      `<div class="block"><h4>Selection</h4>generation <b>${world.generation}</b> · awake births ${world.awakeBirths} · dream births ${world.dreamBirths}<br>archive (hall of fame): ${world.archive.length} genomes</div>` +
+      `<div class="block"><h4>Memory</h4>first genesis: ${world.bornEpoch ? new Date(world.bornEpoch).toLocaleString() : '—'}<br>total attention eaten: ${world.totalAttention.toFixed(1)}<br>persisted: ${storeBytes ? (storeBytes / 1024).toFixed(1) + ' KB' : 'no'}</div>` +
+      `<div class="block" style="color:var(--ink-faint)">GlassEmbryo.reset() wipes all memory</div>`;
+  }
+
+  // keyboard shortcuts live in the shell section below
+
+  /* ---------------- main loop ---------------- */
+  let hudAccum = 0;
+  function stepAndRender(dt) {
+    simT += dt;
+    worldStep(dt);
+    pumpEvents();
+
+    pointerGlow = Math.max(0, pointerGlow - dt * 1.4);
+    dreamSmoothed += ((dreaming ? 1 : 0) - dreamSmoothed) * Math.min(1, dt * 1.5);
+    const beat = Math.pow(Math.abs(Math.sin(simT * (0.9 + 0.5 * vitality))), 5.0);
+
+    gl.uniform2f(u.res, canvas.width, canvas.height);
+    gl.uniform1f(u.time, simT);
+    gl.uniform1f(u.vitality, vitality);
+    gl.uniform1f(u.restless, restless);
+    gl.uniform1f(u.dream, dreamSmoothed);
+    gl.uniform1f(u.beat, beat);
+    gl.uniform2f(u.pointer, pointer.x, pointer.y);
+    gl.uniform1f(u.pointerGlow, pointerGlow);
+    let fedO = null;
+    for (const o of world.alive) if (!o.dying && (!fedO || o.feedGlow > fedO.feedGlow)) fedO = o;
+    gl.uniform3f(u.feed, fedO ? fedO.pos[0] : 0, fedO ? fedO.pos[1] : 0, fedO ? clamp(fedO.feedGlow * 1.3, 0, 1) : 0);
+    const n = packOrganisms();
+    gl.uniform1i(u.alive, n);
+    gl.uniform4fv(u.G, GDATA);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    hudAccum += dt;
+    if (hudAccum > 0.15) { updateHUD(); hudAccum = 0; }
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    fpsEma += (1 / Math.max(dt, 1e-3) - fpsEma) * 0.05;
+    stepAndRender(dt);
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------------- intro / start ---------------- */
+
+  function start() {
+    if (started) return;
+    started = true;
+    lastMoveT = simT;
+    el('intro').classList.add('hide');
+    panel.classList.add('show');
+    // her first note for this OS: "First we start with Good Morning"
+    const h = new Date().getHours();
+    queueEvent(h < 12 ? 'Good morning.' : h < 18 ? 'Good afternoon.' : 'Good evening.', true);
+    if (world.loadedFromStore) {
+      queueEvent('…you came back. I remember.', true);
+    } else {
+      queueEvent('I am new. Four signs, no meanings yet. Feed one.', true);
+    }
+    restoreShell();
+    setVoice(speechOn, false);
+    voiceDemo();
+    if (!world.loadedFromStore) ghostDemo();
+  }
+
+  // the voice control flicks on→off once (silently) so you see what it is
+  function voiceDemo() {
+    if (!canSpeak || speechOn) return;
+    const b = el('voiceBtn');
+    setTimeout(() => b.classList.add('on'), 1400);
+    setTimeout(() => b.classList.remove('on'), 2300);
+  }
+  el('voiceBtn').addEventListener('click', (e) => { e.stopPropagation(); setVoice(!speechOn, true); });
+
+  // First visit only: a ghost hand shows what attention does — once.
+  // It really feeds the nearest sign (no fake), so the sign buds while you watch.
+  let ghostLive = false;
+  function ghostDemo() {
+    const g = el('ghost');
+    const aspect = innerWidth / innerHeight;
+    const target = world.alive.slice().sort((a, b) => Math.abs(a.pos[0]) - Math.abs(b.pos[0]))[0];
+    if (!target) return;
+    const toScreen = q => [(q[0] / aspect + 0.5) * innerWidth, (0.5 - q[1]) * innerHeight];
+    const from = [innerWidth * 0.5, innerHeight * 0.78];
+    let t0 = null; ghostLive = true;
+    const stop = () => { ghostLive = false; g.classList.remove('on'); window.removeEventListener('pointermove', userTook); };
+    const userTook = (e) => { if (e.isTrusted) stop(); };
+    setTimeout(() => window.addEventListener('pointermove', userTook), 50);
+    function step(now) {
+      if (!ghostLive) return;
+      if (t0 === null) { t0 = now; g.classList.add('on'); }
+      const t = (now - t0) / 1000, [tx, ty] = toScreen(target.pos);
+      let x, y;
+      if (t < 1.4) { const e = 1 - Math.pow(1 - t / 1.4, 3); x = from[0] + (tx - from[0]) * e; y = from[1] + (ty - from[1]) * e; }
+      else { x = tx + Math.cos(t * 2.2) * 14; y = ty + Math.sin(t * 2.9) * 9; } // linger
+      g.style.transform = `translate(${x}px, ${y}px)`;
+      const [px, py] = toPSpace(x, y); pointer.x = px; pointer.y = py;
+      lastMoveT = simT; pointerGlow = Math.min(1, pointerGlow + 0.2);
+      if (t > 5.2) { stop(); return; }
+      requestAnimationFrame(step);
+    }
+    setTimeout(() => requestAnimationFrame(step), 700);
+  }
+  el('enterBtn').addEventListener('click', start);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !started) start(); });
+
+  /* ============================================================
+     SHELL — surfaces of glass (Phase 5, a desktop-only Jarvis)
+
+     Every window begins as intent: {type, props}. The registry
+     realizes intent into a glass surface over the light-field.
+     The compositor doesn't care who is speaking — today it's a
+     command palette; tomorrow an LLM could emit the same specs.
+     Keyboard and mouse only, by design: no camera, no gestures,
+     no extra points of failure.
+     ============================================================ */
+  const shellEl = el('shell');
+  const SHELL_KEY = 'glassos-shell-v1';
+  const NOTES_KEY = 'glassos-notes-v1';
+  const wins = [];
+  let zTop = 10, vitalsBody = null, saveShellTimer = 0, fpsEma = 60;
+
+  const fmt2 = n => String(n).padStart(2, '0');
+  // a degenerate viewport (minimized pane, collapsing window) must never
+  // corrupt geometry or the saved layout
+  const viewOk = () => innerWidth >= 200 && innerHeight >= 200;
+  const vw = () => Math.max(innerWidth, 320);
+  const vh = () => Math.max(innerHeight, 240);
+  const wmoMap = (c) => {
+    if (c === 0) return ['☀', 'clear sky'];
+    if (c <= 2) return ['⛅', 'partly cloudy'];
+    if (c === 3) return ['☁', 'overcast'];
+    if (c === 45 || c === 48) return ['🌫', 'fog'];
+    if (c <= 57) return ['🌦', 'drizzle'];
+    if (c <= 67) return ['🌧', 'rain'];
+    if (c <= 77) return ['❄', 'snow'];
+    if (c <= 82) return ['🌧', 'showers'];
+    if (c <= 86) return ['❄', 'snow showers'];
+    return ['⛈', 'thunderstorm'];
+  };
+  const guessCity = () => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').pop().replace(/_/g, ' '); }
+    catch (e) { return 'Sydney'; }
+  };
+  function chime() {
+    try {
+      const A = new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = A.currentTime;
+      [523.25, 659.25, 783.99].forEach((f, i) => {
+        const o = A.createOscillator(), g = A.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0 + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.08, t0 + i * 0.12 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + i * 0.12 + 0.5);
+        o.connect(g).connect(A.destination);
+        o.start(t0 + i * 0.12); o.stop(t0 + i * 0.12 + 0.55);
+      });
+    } catch (e) {}
+  }
+
+  const REGISTRY = {
+    clock: {
+      title: 'Clock', alias: ['time'], desc: 'local time and date', w: 236, h: 128, single: true,
+      mount(body) {
+        const t = () => {
+          const d = new Date();
+          body.innerHTML =
+            `<div class="big">${fmt2(d.getHours())}:${fmt2(d.getMinutes())}<span class="dim" style="font-size:16px"> ${fmt2(d.getSeconds())}</span></div>` +
+            `<div class="dim" style="margin-top:6px">${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>`;
+        };
+        t(); return { tick: t };
+      }
+    },
+    weather: {
+      title: 'Weather', alias: ['w', 'meteo'], desc: 'weather [city] — live via Open-Meteo', w: 252, h: 172, single: true,
+      mount(body, props) {
+        body.innerHTML = '<div class="dim">reading the sky…</div>';
+        (async () => {
+          try {
+            const city = (props.city || '').trim() || guessCity();
+            const g = await (await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(city))).json();
+            const loc = g.results && g.results[0];
+            if (!loc) { body.innerHTML = `<div class="dim">I can't find “${city}.”</div>`; return; }
+            const wx = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m`)).json();
+            const c = wx.current;
+            const [ico, txt] = wmoMap(c.weather_code);
+            body.innerHTML =
+              `<div class="dim" style="letter-spacing:.14em;text-transform:uppercase;font-size:10px">${loc.name}${loc.country_code ? ' · ' + loc.country_code : ''}</div>` +
+              `<div class="big" style="margin-top:4px">${Math.round(c.temperature_2m)}°<span style="font-size:18px"> ${ico}</span></div>` +
+              `<div class="dim" style="margin-top:5px">${txt} · feels ${Math.round(c.apparent_temperature)}°<br>wind ${Math.round(c.wind_speed_10m)} km/h · humidity ${c.relative_humidity_2m}%</div>`;
+          } catch (e) { body.innerHTML = '<div class="dim">the sky is unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    notes: {
+      title: 'Notes', alias: ['note', 'todo'], desc: 'a persistent scrap of thought', w: 272, h: 214, single: true,
+      mount(body) {
+        const ta = document.createElement('textarea');
+        ta.placeholder = 'thoughts stay here, across visits…';
+        try { ta.value = localStorage.getItem(NOTES_KEY) || ''; } catch (e) {}
+        let deb;
+        ta.addEventListener('input', () => {
+          clearTimeout(deb);
+          deb = setTimeout(() => { try { localStorage.setItem(NOTES_KEY, ta.value); } catch (e) {} }, 400);
+        });
+        body.style.padding = '6px 10px 10px';
+        body.appendChild(ta);
+      }
+    },
+    timer: {
+      title: 'Timer', alias: ['t', 'countdown'], desc: 'timer [minutes] — chimes when done', w: 222, h: 152,
+      mount(body, props) {
+        const total = Math.max(0.1, parseFloat(props.min) || 5) * 60;
+        let leftS = total, running = true, done = false;
+        const disp = document.createElement('div'); disp.className = 'big';
+        const row = document.createElement('div'); row.className = 'btnrow';
+        const bPause = document.createElement('button'); bPause.textContent = 'pause';
+        const bReset = document.createElement('button'); bReset.textContent = 'reset';
+        bPause.onclick = () => { running = !running; bPause.textContent = running ? 'pause' : 'resume'; };
+        bReset.onclick = () => { leftS = total; done = false; running = true; bPause.textContent = 'pause'; paint(); };
+        row.append(bPause, bReset);
+        const paint = () => {
+          const s = Math.max(0, Math.ceil(leftS));
+          disp.textContent = `${fmt2(Math.floor(s / 60))}:${fmt2(s % 60)}`;
+          disp.style.color = done ? '#ffd27f' : '';
+        };
+        paint(); body.append(disp, row);
+        return {
+          tick() {
+            if (!running || done) return;
+            leftS -= 1;
+            if (leftS <= 0) {
+              done = true; running = false; paint(); chime();
+              queueEvent(`Your ${Math.round(total / 60)}-minute timer has ended.`, true);
+            } else paint();
+          }
+        };
+      }
+    },
+    github: {
+      title: 'GitHub', alias: ['gh', 'repo'], desc: 'github [owner/repo] — live repo pulse', w: 272, h: 176, single: true,
+      mount(body, props) {
+        const repo = (props.repo || '').trim() || 'in-c0/glassos-webgl';
+        body.innerHTML = '<div class="dim">asking GitHub…</div>';
+        (async () => {
+          try {
+            const r = await fetch('https://api.github.com/repos/' + repo);
+            if (!r.ok) { body.innerHTML = `<div class="dim">${r.status === 403 ? 'rate-limited — try again later' : 'no such repo “' + repo + '”'}</div>`; return; }
+            const d = await r.json();
+            let commitLine = '';
+            try {
+              const cr = await (await fetch(`https://api.github.com/repos/${repo}/commits?per_page=1`)).json();
+              const c0 = cr[0];
+              if (c0) commitLine = `<div class="dim" style="margin-top:8px">“${c0.commit.message.split('\n')[0].slice(0, 46)}”<br>${new Date(c0.commit.author.date).toLocaleDateString()}</div>`;
+            } catch (e) {}
+            body.innerHTML =
+              `<div><a href="${d.html_url}" target="_blank" rel="noopener"><b>${d.full_name}</b></a></div>` +
+              `<div style="margin-top:8px;font-size:15px;color:var(--ink)">★ ${d.stargazers_count} &nbsp; ⑂ ${d.forks_count} &nbsp; ◉ ${d.subscribers_count ?? d.watchers_count}</div>` +
+              commitLine;
+          } catch (e) { body.innerHTML = '<div class="dim">GitHub unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    hn: {
+      title: 'Frontier', alias: ['news', 'hacker'], desc: 'live front page of Hacker News', w: 332, h: 252, single: true,
+      mount(body) {
+        body.innerHTML = '<div class="dim">listening to the frontier…</div>';
+        (async () => {
+          try {
+            const d = await (await fetch('https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=8')).json();
+            body.innerHTML = d.hits.map(h =>
+              `<div style="margin-bottom:8px"><a href="${h.url || ('https://news.ycombinator.com/item?id=' + h.objectID)}" target="_blank" rel="noopener">${h.title}</a> <span class="dim" style="font-size:10px">▲${h.points}</span></div>`
+            ).join('') || '<div class="dim">silence.</div>';
+          } catch (e) { body.innerHTML = '<div class="dim">the frontier is unreachable — offline?</div>'; }
+        })();
+      }
+    },
+    vitals: {
+      title: 'Vitals', alias: ['embryo', 'soul', 'dev'], desc: "the creature's inner life, live", w: 332, h: 336, single: true,
+      mount(body) { vitalsBody = body; updateDev(); return { cleanup() { vitalsBody = null; } }; }
+    },
+    perf: {
+      title: 'Pulse', alias: ['fps', 'system'], desc: 'render pulse of this machine', w: 232, h: 154, single: true,
+      mount(body) {
+        const t = () => {
+          const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) + ' MB heap' : 'heap n/a';
+          body.innerHTML =
+            `<div class="big">${Math.round(fpsEma)}<span class="dim" style="font-size:15px"> fps</span></div>` +
+            `<div class="dim" style="margin-top:6px">${canvas.width}×${canvas.height} @ ${DPR.toFixed(2)}×<br>${mem}<br>${world.alive.length} signs · gen ${world.generation}</div>`;
+        };
+        t(); return { tick: t };
+      }
+    },
+    help: {
+      title: 'Help', alias: ['?', 'about'], desc: 'what this desk can do', w: 340, h: 340, single: true,
+      mount(body) {
+        const rows = Object.entries(REGISTRY).filter(([, d]) => !d.hidden).map(([k, d]) =>
+          `<div style="margin-bottom:6px"><b style="font-family:var(--mono)">${k}</b> <span class="dim">— ${d.desc}</span></div>`).join('');
+        body.innerHTML =
+          `<div class="block"><h4>Conjure</h4><span class="dim"><b>⌘K</b> / <b>Ctrl K</b> / <b>/</b> opens the palette. Type an intent; Enter realizes it as glass. Type <i>anything else</i> — with an API key connected (see <b>brain</b>), a frontier model generates a bespoke surface for it.</span></div>` +
+          `<div class="block"><h4>Surfaces</h4>${rows}</div>` +
+          `<div class="block"><h4>The creature</h4><span class="dim">Linger near a sign to feed it; click it to feast it. Stop for 12s and it dreams — the glass frosts over. <b>D</b> toggles vitals. It remembers you.</span></div>` +
+          `<div class="dim"><a href="https://github.com/in-c0/glassos-webgl" target="_blank" rel="noopener">source</a> · by <a href="https://ava.kim" target="_blank" rel="noopener">Ava Kim</a></div>`;
+      }
+    },
+    brain: {
+      title: 'Brain', alias: ['key', 'api', 'settings'], desc: 'choose a mind — cloud (Anthropic) or a local model — then conjure anything', w: 340, h: 348, single: true,
+      mount(body) {
+        const cfg = brainCfg();
+        const prov = cfg.provider === 'ollama' ? 'ollama' : 'anthropic';
+        body.innerHTML =
+          `<div class="dim" style="margin-bottom:10px">Freeform conjuring needs a mind. Pick where it runs — nothing here leaves your browser except the request to the endpoint you choose.</div>` +
+          `<div class="field"><label>Provider</label>` +
+          `<div class="btnrow" style="margin-top:0"><button id="pvA">☁ Anthropic</button><button id="pvO">⌂ Local (Ollama)</button></div></div>` +
+          `<div id="fA"><div class="field"><label>Anthropic API key</label><input id="brainKey" type="password" placeholder="sk-ant-…" autocomplete="off" /></div></div>` +
+          `<div id="fO"><div class="field"><label>Ollama base URL</label><input id="brainBase" type="text" autocomplete="off" placeholder="http://localhost:11434" /></div>` +
+          `<div class="dim" style="font-size:10px;margin:-4px 0 8px">Fully offline. Needs Ollama running with <b>OLLAMA_ORIGINS=*</b>. Only reachable when this page is served over http (local/self-hosted) — a public https page can't call localhost.</div>` +
+          `<label style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-dim);margin-bottom:8px;cursor:pointer"><input id="brainCpu" type="checkbox" style="width:auto" /> run on CPU (no VRAM — for small cards, slower)</label></div>` +
+          `<div class="field"><label>Model</label><input id="brainModel" type="text" autocomplete="off" /></div>` +
+          `<div class="btnrow"><button id="brainSave">save</button><button id="brainClear">clear</button></div>` +
+          `<div class="dim" id="brainStatus" style="margin-top:9px"></div>`;
+        const keyEl = body.querySelector('#brainKey'), baseEl = body.querySelector('#brainBase'),
+          modelEl = body.querySelector('#brainModel'), status = body.querySelector('#brainStatus'),
+          fA = body.querySelector('#fA'), fO = body.querySelector('#fO'),
+          bA = body.querySelector('#pvA'), bO = body.querySelector('#pvO');
+        let cur = prov;
+        keyEl.value = cfg.key || '';
+        baseEl.value = cfg.base || 'http://localhost:11434';
+        body.querySelector('#brainCpu').checked = !!cfg.cpu;
+        const dflt = { anthropic: 'claude-opus-4-8', ollama: 'qwen3:8b' };
+        modelEl.value = cfg.model || dflt[prov];
+        const paint = () => {
+          fA.style.display = cur === 'anthropic' ? '' : 'none';
+          fO.style.display = cur === 'ollama' ? '' : 'none';
+          bA.style.opacity = cur === 'anthropic' ? 1 : 0.5;
+          bO.style.opacity = cur === 'ollama' ? 1 : 0.5;
+        };
+        bA.onclick = () => { cur = 'anthropic'; if (!modelEl.value || modelEl.value === dflt.ollama) modelEl.value = dflt.anthropic; paint(); };
+        bO.onclick = () => { cur = 'ollama'; if (!modelEl.value || modelEl.value === dflt.anthropic) modelEl.value = dflt.ollama; paint(); };
+        paint();
+        const setStatus = () => { status.textContent = brainReady() ? `connected (${brainCfg().provider === 'ollama' ? 'local' : 'cloud'}) — the palette can conjure anything.` : 'not connected.'; };
+        setStatus();
+        body.querySelector('#brainSave').onclick = () => {
+          const c = { provider: cur, model: modelEl.value.trim() || dflt[cur] };
+          if (cur === 'anthropic') c.key = keyEl.value.trim();
+          else { c.base = (baseEl.value.trim() || 'http://localhost:11434').replace(/\/$/, ''); c.cpu = body.querySelector('#brainCpu').checked; }
+          try { localStorage.setItem(BRAIN_KEY, JSON.stringify(c)); } catch (e) {}
+          setStatus();
+          if (brainReady()) queueEvent(cur === 'ollama' ? 'A local brain is connected. Fully offline now.' : 'The brain is connected.', true);
+        };
+        body.querySelector('#brainClear').onclick = () => {
+          try { localStorage.removeItem(BRAIN_KEY); } catch (e) {}
+          keyEl.value = ''; setStatus();
+        };
+      }
+    },
+    custom: {
+      title: 'Conjured', desc: 'a surface conjured by the brain', w: 300, h: 240, hidden: true,
+      mount(body, props) {
+        if (props.spec) return;            // openPanel post-step renders it
+        if (!props.intent) { body.innerHTML = '<div class="dim">nothing to conjure — use the palette.</div>'; return; }
+        body.innerHTML = '<div class="dim">conjuring…</div>';
+      }
+    },
+  };
+
+  /* ============================================================
+     THE BRAIN SLOT — freeform conjuring via a frontier model
+
+     The user's wish goes to the Anthropic API (their own key,
+     stored locally, sent nowhere else); the model emits a GlassDSL
+     spec; a strict whitelist validator sanitizes it; a DOM renderer
+     realizes it. Specs persist with the layout, so conjured
+     surfaces survive reloads without re-calling the API. Every
+     (intent, spec) pair is logged locally — the seed dataset for
+     the future on-device cerebellum.
+     ============================================================ */
+  const BRAIN_KEY = 'glassos-brain-v1';
+  const GENLOG_KEY = 'glassos-genlog-v1';
+  const LIVE_HOSTS = new Set([
+    'api.open-meteo.com', 'geocoding-api.open-meteo.com', 'api.github.com',
+    'hn.algolia.com', 'api.coingecko.com', 'api.frankfurter.app', 'worldtimeapi.org',
+  ]);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function brainCfg() {
+    try { return JSON.parse(localStorage.getItem(BRAIN_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  // "connected" spans both providers: a cloud key, or a local endpoint+model
+  function brainReady() {
+    const c = brainCfg();
+    if (c.provider === 'ollama') return !!(c.base && c.model);
+    return !!c.key;
+  }
+  function genlog(intent, ok, spec) {
+    try {
+      const arr = JSON.parse(localStorage.getItem(GENLOG_KEY) || '[]');
+      arr.push({ ts: Date.now(), intent, ok, spec: ok ? spec : undefined });
+      while (arr.length > 50) arr.shift();
+      localStorage.setItem(GENLOG_KEY, JSON.stringify(arr));
+    } catch (e) {}
+  }
+
+  /* ---- GlassDSL v0: validate (whitelist-copy, never trust) ---- */
+  const SPEC_STYLES = new Set(['big', 'md', 'dim', 'label']);
+  function safeUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' ? x.href : null; } catch (e) { return null; } }
+  function liveUrl(u) { try { const x = new URL(String(u)); return x.protocol === 'https:' && LIVE_HOSTS.has(x.hostname) ? x.href : null; } catch (e) { return null; } }
+  function cleanNodes(list, depth, budget) {
+    return (Array.isArray(list) ? list : []).map(n => cleanNode(n, depth, budget)).filter(Boolean);
+  }
+  function cleanNode(n, depth, budget) {
+    if (!n || typeof n !== 'object' || depth > 6 || ++budget.n > 80) return null;
+    const s = v => typeof v === 'string' ? v.slice(0, 400) : '';
+    switch (n.t) {
+      case 'text': return { t: 'text', v: s(n.v), style: SPEC_STYLES.has(n.style) ? n.style : 'md', mono: !!n.mono };
+      case 'row': case 'col': return { t: n.t, gap: clamp(+n.gap || 8, 0, 24), children: cleanNodes(n.children, depth + 1, budget) };
+      case 'list': return {
+        t: 'list',
+        items: (Array.isArray(n.items) ? n.items : []).slice(0, 20)
+          .map(it => typeof it === 'string' ? { t: 'text', v: s(it), style: 'md' } : cleanNode(it, depth + 1, budget))
+          .filter(Boolean)
+      };
+      case 'stat': return { t: 'stat', label: s(n.label), value: s(n.value), hint: s(n.hint) };
+      case 'meter': return { t: 'meter', label: s(n.label), value: clamp(+n.value || 0, 0, 1) };
+      case 'divider': return { t: 'divider' };
+      case 'spark': return { t: 'spark', values: (Array.isArray(n.values) ? n.values : []).slice(0, 24).map(v => +v || 0), label: s(n.label) };
+      case 'link': { const u = safeUrl(n.url); return u ? { t: 'link', label: s(n.label) || u, url: u } : null; }
+      case 'button': {
+        const a = n.action || {};
+        if (a.kind === 'link') { const u = safeUrl(a.url); return u ? { t: 'button', label: s(n.label) || 'open', action: { kind: 'link', url: u } } : null; }
+        if (a.kind === 'conjure' && typeof a.intent === 'string') return { t: 'button', label: s(n.label) || 'conjure', action: { kind: 'conjure', intent: a.intent.slice(0, 200) } };
+        if (a.kind === 'close') return { t: 'button', label: s(n.label) || 'close', action: { kind: 'close' } };
+        return null;
+      }
+      case 'live': return { t: 'live', src: n.src === 'date' ? 'date' : 'clock' };
+      case 'fetchjson': {
+        const u = liveUrl(n.url);
+        return u ? { t: 'fetchjson', url: u, path: s(n.path), label: s(n.label), prefix: s(n.prefix), suffix: s(n.suffix), refresh: n.refresh ? clamp(+n.refresh || 0, 30, 3600) : 0 } : null;
+      }
+      default: return null;
+    }
+  }
+  function validateSpec(raw) {
+    if (!raw || typeof raw !== 'object') return { ok: false, error: 'not an object' };
+    const budget = { n: 0 };
+    const body = cleanNodes(raw.body, 0, budget);
+    if (!body.length) return { ok: false, error: 'empty or entirely invalid body' };
+    return {
+      ok: true,
+      spec: {
+        title: typeof raw.title === 'string' ? raw.title.slice(0, 24) : 'Conjured',
+        w: clamp(+raw.w || 300, 176, 560), h: clamp(+raw.h || 240, 96, 520),
+        body,
+      }
+    };
+  }
+
+  /* ---- GlassDSL v0: render (createElement only — no injected HTML) ---- */
+  function buildNode(node) {
+    switch (node.t) {
+      case 'text': {
+        const d = document.createElement('div');
+        if (node.style === 'big') d.className = 'big';
+        else if (node.style === 'dim') d.className = 'dim';
+        else if (node.style === 'label') { d.className = 'dim'; d.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; }
+        if (node.mono) d.style.fontFamily = 'var(--mono)';
+        d.textContent = node.v;
+        return d;
+      }
+      case 'row': case 'col': {
+        const d = document.createElement('div');
+        d.style.cssText = `display:flex;flex-direction:${node.t === 'row' ? 'row' : 'column'};gap:${node.gap}px;align-items:${node.t === 'row' ? 'baseline' : 'stretch'};flex-wrap:wrap`;
+        node.children.forEach(c => d.appendChild(buildNode(c)));
+        return d;
+      }
+      case 'list': {
+        const d = document.createElement('div');
+        node.items.forEach(it => { const r = document.createElement('div'); r.style.marginBottom = '6px'; r.appendChild(buildNode(it)); d.appendChild(r); });
+        return d;
+      }
+      case 'stat': {
+        const d = document.createElement('div');
+        const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; l.textContent = node.label;
+        const v = document.createElement('div'); v.className = 'big'; v.textContent = node.value;
+        d.append(l, v);
+        if (node.hint) { const h = document.createElement('div'); h.className = 'dim'; h.textContent = node.hint; d.appendChild(h); }
+        return d;
+      }
+      case 'meter': {
+        const d = document.createElement('div'); d.className = 'meter'; d.style.marginTop = '4px';
+        const lab = document.createElement('div'); lab.className = 'lab';
+        const s1 = document.createElement('span'); s1.textContent = node.label;
+        const s2 = document.createElement('span'); s2.className = 'val'; s2.textContent = Math.round(node.value * 100) + '%';
+        lab.append(s1, s2);
+        const bar = document.createElement('div'); bar.className = 'bar';
+        const fill = document.createElement('div'); fill.className = 'fill vit'; fill.style.width = (node.value * 100) + '%';
+        bar.appendChild(fill); d.append(lab, bar);
+        return d;
+      }
+      case 'divider': {
+        const d = document.createElement('div');
+        d.style.cssText = 'border-top:1px solid rgba(255,255,255,0.07);margin:10px 0';
+        return d;
+      }
+      case 'spark': {
+        const d = document.createElement('div');
+        if (node.label) { const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.12em;text-transform:uppercase'; l.textContent = node.label; d.appendChild(l); }
+        const sp = document.createElement('div'); sp.className = 'spark';
+        const max = Math.max(...node.values.map(Math.abs), 1e-9);
+        node.values.forEach(v => { const i = document.createElement('i'); i.style.height = Math.max(4, Math.abs(v) / max * 100) + '%'; sp.appendChild(i); });
+        d.appendChild(sp);
+        return d;
+      }
+      case 'link': {
+        const a = document.createElement('a');
+        a.href = node.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = node.label;
+        return a;
+      }
+      case 'button': {
+        const row = document.createElement('div'); row.className = 'btnrow'; row.style.marginTop = '6px';
+        const b = document.createElement('button'); b.textContent = node.label;
+        b.onclick = (e) => {
+          if (node.action.kind === 'link') window.open(node.action.url, '_blank', 'noopener');
+          else if (node.action.kind === 'conjure') conjureIntent(node.action.intent);
+          else if (node.action.kind === 'close') {
+            const el = e.target.closest('.win');
+            const w = wins.find(x => x.el === el);
+            if (w) closePanel(w);
+          }
+        };
+        row.appendChild(b);
+        return row;
+      }
+      case 'live': {
+        const sp = document.createElement('div'); sp.className = 'big';
+        const paint = () => {
+          const d = new Date();
+          sp.textContent = node.src === 'date'
+            ? d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+            : `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}:${fmt2(d.getSeconds())}`;
+        };
+        paint();
+        const id = setInterval(() => { if (!sp.isConnected) { clearInterval(id); return; } paint(); }, 1000);
+        return sp;
+      }
+      case 'fetchjson': {
+        const box = document.createElement('div');
+        if (node.label) { const l = document.createElement('div'); l.className = 'dim'; l.style.cssText = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase'; l.textContent = node.label; box.appendChild(l); }
+        const val = document.createElement('div'); val.className = 'big'; val.textContent = '…';
+        box.appendChild(val);
+        const load = async () => {
+          try {
+            const j = await (await fetch(node.url)).json();
+            let v = j;
+            for (const k of node.path.split('.').filter(Boolean)) v = v?.[k];
+            if (v === undefined || v === null || typeof v === 'object') throw 0;
+            if (typeof v === 'number') v = Math.round(v * 100) / 100;
+            val.textContent = `${node.prefix || ''}${v}${node.suffix || ''}`;
+            val.classList.remove('dim');
+          } catch (e) { val.textContent = '—'; val.classList.add('dim'); }
+        };
+        load();
+        if (node.refresh) {
+          const id = setInterval(() => { if (!box.isConnected) { clearInterval(id); return; } load(); }, node.refresh * 1000);
+        }
+        return box;
+      }
+    }
+    return document.createElement('span');
+  }
+  function renderSpec(spec, body) {
+    body.innerHTML = '';
+    spec.body.forEach(n => {
+      const el0 = buildNode(n);
+      el0.style.marginBottom = el0.style.marginBottom || '8px';
+      body.appendChild(el0);
+    });
+  }
+
+  /* ---- the call itself ---- */
+  function buildBrainSystem() {
+    const open = wins.map(w => w.type).join(', ') || 'none';
+    const d = new Date();
+    let tz = 'UTC'; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+    return `You are the brain of GlassOS, a desktop of glass and light. The user typed a wish; realize it as ONE surface by emitting a single JSON object (no markdown fences, no prose) in GlassDSL v0:
+
+{"title":"<=24 chars","w":176-560,"h":96-520,"body":[node,...]}
+
+Nodes:
+{"t":"text","v":"string","style":"big|md|dim|label","mono":true?}
+{"t":"row","gap":8,"children":[...]} | {"t":"col","gap":8,"children":[...]}
+{"t":"list","items":["string" or node,...]}
+{"t":"stat","label":"s","value":"s","hint":"s"?}
+{"t":"meter","label":"s","value":0..1}
+{"t":"divider"}
+{"t":"spark","values":[numbers,<=24],"label":"s"?}
+{"t":"button","label":"s","action":{"kind":"link","url":"https://..."}|{"kind":"conjure","intent":"s"}|{"kind":"close"}}
+{"t":"link","label":"s","url":"https://..."}
+{"t":"live","src":"clock|date"}  (self-updating)
+{"t":"fetchjson","url":"https://...","path":"a.b.0.c","label":"s"?,"prefix":"s"?,"suffix":"s"?,"refresh":30-3600?}
+
+fetchjson may ONLY use these keyless CORS-open hosts: api.open-meteo.com, geocoding-api.open-meteo.com, api.github.com, hn.algolia.com, api.coingecko.com, api.frankfurter.app, worldtimeapi.org. Examples:
+- BTC: url "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd" path "bitcoin.usd" prefix "$"
+- temp now: url "https://api.open-meteo.com/v1/forecast?latitude=LAT&longitude=LON&current=temperature_2m" path "current.temperature_2m" suffix "°" (use real coordinates for the named city)
+- FX: url "https://api.frankfurter.app/latest?from=USD&to=KRW" path "rates.KRW"
+- repo stars: url "https://api.github.com/repos/OWNER/REPO" path "stargazers_count"
+Never invent other hosts. When no live source fits, compute or write the content yourself — you are intelligent; a good static surface beats a broken live one.
+
+Keep surfaces COMPACT: prefer <=8 top-level body items and h<=340 unless the content truly demands more. A tight, glanceable surface beats a sprawling one. For step lists / checklists, use one {"t":"list"} node rather than many text nodes. Worked example — "a 3-step morning routine": {"title":"Morning","w":220,"h":180,"body":[{"t":"text","v":"Morning routine","style":"label"},{"t":"list","items":["Drink water","Stretch 5 min","Review the day"]}]}
+
+Context: local time ${fmt2(d.getHours())}:${fmt2(d.getMinutes())}, ${d.toDateString()}, timezone ${tz}. Open surfaces: ${open}. Living background: ${world.alive.length} evolved signs, generation ${world.generation}.
+Emit ONLY the raw JSON object — no markdown fences, no prose.`;
+  }
+
+  function extractJSON(text) {
+    try { return JSON.parse(text); } catch (e) {}
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a >= 0 && b > a) { try { return JSON.parse(text.slice(a, b + 1)); } catch (e) {} }
+    return null;
+  }
+
+  // Local brain: Ollama's OpenAI-ish /api/chat. format:'json' constrains the
+  // model to emit parseable JSON — a big reliability win for small models.
+  async function callOllama(cfg, intent) {
+    const res = await fetch(cfg.base.replace(/\/$/, '') + '/api/chat', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model || 'qwen3:8b',
+        stream: false, think: false, format: 'json',
+        // num_gpu:0 forces CPU — the escape hatch when the GPU's VRAM is
+        // already spoken for (the desk's own WebGL + your other apps)
+        options: { temperature: 0.3, num_ctx: 4096, num_predict: 2200, ...(cfg.cpu ? { num_gpu: 0 } : {}) },
+        messages: [
+          { role: 'system', content: buildBrainSystem() },
+          { role: 'user', content: intent },
+        ],
+      }),
+    }).catch(() => { throw new Error('local brain unreachable — is Ollama running with OLLAMA_ORIGINS=* ? (and served over http, not https)'); });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error || ('local brain error (HTTP ' + res.status + ')'));
+    return data?.message?.content || '';
+  }
+
+  async function callAnthropic(cfg, intent) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': cfg.key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: cfg.model || 'claude-opus-4-8',
+        max_tokens: 4096,
+        system: buildBrainSystem(),
+        messages: [{ role: 'user', content: intent }],
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error?.message || ('the brain is unreachable (HTTP ' + res.status + ')'));
+    if (data.stop_reason === 'refusal') throw new Error('the brain declined this request');
+    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  }
+
+  async function callBrain(intent) {
+    const cfg = brainCfg();
+    if (!brainReady()) throw new Error('no brain — open “brain” and connect a cloud key or a local model');
+    const text = cfg.provider === 'ollama' ? await callOllama(cfg, intent) : await callAnthropic(cfg, intent);
+    const spec = extractJSON(text);
+    const v = validateSpec(spec);
+    if (!v.ok) throw new Error('the brain spoke, but not in GlassDSL (' + v.error + ')');
+    return v.spec;
+  }
+
+  function applySpecToWin(w) {
+    const spec = w.props.spec;
+    if (!spec) return;
+    w.el.querySelector('.win-t span').textContent = spec.title;
+    w.w = clamp(spec.w, 176, 560); w.h = clamp(spec.h, 96, 520);
+    applyGeom(w);
+    renderSpec(spec, w.body);
+  }
+
+  async function conjureFill(w) {
+    w.body.innerHTML = '<div class="dim">conjuring…</div>';
+    try {
+      const spec = await callBrain(w.props.intent);
+      w.props.spec = spec;
+      applySpecToWin(w);
+      genlog(w.props.intent, true, spec);
+      saveShell();
+      if (!window.__conjuredOnce) { window.__conjuredOnce = true; queueEvent('Conjured. That surface was generated, not built.', true); }
+    } catch (e) {
+      genlog(w.props.intent, false);
+      w.body.innerHTML = '';
+      const d = document.createElement('div'); d.className = 'dim'; d.textContent = String(e.message || e);
+      const row = document.createElement('div'); row.className = 'btnrow';
+      const b = document.createElement('button'); b.textContent = 'retry'; b.onclick = () => conjureFill(w);
+      row.appendChild(b);
+      w.body.append(d, row);
+    }
+  }
+
+  function conjureIntent(intent) {
+    intent = String(intent || '').trim().slice(0, 500);
+    if (!intent) return;
+    const w = openPanel('custom', { intent });
+    if (w) conjureFill(w);
+  }
+
+  /* ---------------- window manager ---------------- */
+  function applyGeom(w) {
+    w.el.style.left = w.x + 'px'; w.el.style.top = w.y + 'px';
+    w.el.style.width = w.w + 'px'; w.el.style.height = w.h + 'px';
+  }
+  function focusWin(w) { w.z = ++zTop; w.el.style.zIndex = w.z; }
+  function spawnPos(pw, ph) {
+    const pad = 24;
+    let x = vw() - pw - pad, y = 84;
+    for (let k = 0; k < 24; k++) {
+      if (!wins.some(w => Math.abs(w.x - x) < 30 && Math.abs(w.y - y) < 30)) break;
+      x -= 34; y += 34;
+      if (y + ph > vh() - 60) { y = 84; x -= pw * 0.5; }
+      if (x < pad) x = vw() - pw - pad - 60;
+    }
+    return [Math.max(pad, x), Math.max(60, Math.min(y, vh() - ph - 40))];
+  }
+
+  function openPanel(type, props = {}, geom = null, silent = false) {
+    const def = REGISTRY[type];
+    if (!def) return null;
+    if (def.single) {
+      const ex = wins.find(w => w.type === type);
+      if (ex) {
+        if (Object.keys(props).length) closePanel(ex, true); // re-conjure with new props
+        else { focusWin(ex); return ex; }
+      }
+    }
+    const root = document.createElement('div');
+    root.className = 'win glass';
+    root.innerHTML = `<div class="win-t"><span>${def.title}</span><button class="win-x" title="close">×</button></div><div class="win-b"></div><div class="win-r"></div>`;
+    const body = root.querySelector('.win-b');
+    const w = { type, props, el: root, body, x: 0, y: 0, w: geom?.w || def.w, h: geom?.h || def.h, z: ++zTop };
+    w.w = Math.min(w.w, vw() - 40); w.h = Math.min(w.h, vh() - 60);
+    [w.x, w.y] = geom ? [geom.x, geom.y] : spawnPos(w.w, w.h);
+    w.x = clamp(w.x, 60 - w.w, vw() - 60); w.y = clamp(w.y, 8, vh() - 40);
+    root.style.zIndex = w.z;
+    applyGeom(w);
+    shellEl.appendChild(root);
+    const api = def.mount(body, props) || {};
+    w.tick = api.tick; w.cleanup = api.cleanup;
+    if (type === 'custom' && props.spec) applySpecToWin(w); // restored conjured surface — renders offline
+    root.addEventListener('pointerdown', () => focusWin(w));
+    root.querySelector('.win-x').addEventListener('click', () => closePanel(w));
+    const tbar = root.querySelector('.win-t');
+    tbar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.win-x')) return;
+      e.preventDefault();
+      const sx = e.clientX - w.x, sy = e.clientY - w.y;
+      const move = ev => { w.x = clamp(ev.clientX - sx, 60 - w.w, vw() - 60); w.y = clamp(ev.clientY - sy, 8, vh() - 40); applyGeom(w); };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); saveShell(); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
+    root.querySelector('.win-r').addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const sx = e.clientX, sy = e.clientY, ow = w.w, oh = w.h;
+      const move = ev => { w.w = Math.max(176, ow + ev.clientX - sx); w.h = Math.max(96, oh + ev.clientY - sy); applyGeom(w); };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); saveShell(); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
+    wins.push(w);
+    if (!silent) saveShell();
+    return w;
+  }
+
+  function closePanel(w, silent = false) {
+    try { w.cleanup && w.cleanup(); } catch (e) {}
+    w.el.remove();
+    const i = wins.indexOf(w);
+    if (i >= 0) wins.splice(i, 1);
+    if (!silent) saveShell();
+  }
+
+  function saveShellNow() {
+    if (!viewOk()) return; // never persist a layout computed against a collapsed viewport
+    try {
+      localStorage.setItem(SHELL_KEY, JSON.stringify({
+        v: 1,
+        panels: wins.slice().sort((a, b) => a.z - b.z).map(w => ({
+          t: w.type, p: w.props, x: Math.round(w.x), y: Math.round(w.y), w: Math.round(w.w), h: Math.round(w.h)
+        }))
+      }));
+    } catch (e) {}
+  }
+  function saveShell() { clearTimeout(saveShellTimer); saveShellTimer = setTimeout(saveShellNow, 600); }
+
+  function restoreShell() {
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(SHELL_KEY) || 'null'); } catch (e) {}
+    if (stored && stored.v === 1 && Array.isArray(stored.panels) && stored.panels.length) {
+      for (const p of stored.panels) openPanel(p.t, p.p || {}, { x: p.x, y: p.y, w: p.w, h: p.h }, true);
+    }
+    // first visit: an empty desk — the creature is the first thing you meet.
+    // surfaces arrive when you conjure them (⌘K), never uninvited.
+  }
+
+  setInterval(() => { for (const w of wins) { try { w.tick && w.tick(); } catch (e) {} } }, 1000);
+
+  /* ---------------- command palette ---------------- */
+  const paletteEl = el('palette'), palInput = el('palInput'), palHints = el('palHints');
+  function paletteOpen() {
+    if (!started) return;
+    paletteEl.classList.add('show');
+    palInput.value = ''; renderHints('');
+    setTimeout(() => palInput.focus(), 30);
+  }
+  function paletteClose() { paletteEl.classList.remove('show'); palInput.blur(); }
+  function exactCmd(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return null;
+    const sp = q.split(/\s+/), head = sp[0], arg = sp.slice(1).join(' ');
+    const k = Object.keys(REGISTRY).find(k => k === head || (REGISTRY[k].alias || []).includes(head));
+    return k ? { k, arg } : null;
+  }
+  function matchCmd(q) {
+    q = q.trim().toLowerCase();
+    if (!q) return null;
+    const ex = exactCmd(q);
+    if (ex) return ex;
+    const sp = q.split(/\s+/), head = sp[0], arg = sp.slice(1).join(' ');
+    const k = Object.keys(REGISTRY).find(k => k.startsWith(head) || (REGISTRY[k].alias || []).some(a => a.startsWith(head)));
+    return k ? { k, arg } : null;
+  }
+  function argProps(k, arg) {
+    if (!arg) return {};
+    if (k === 'weather') return { city: arg };
+    if (k === 'github') return { repo: arg };
+    if (k === 'timer') return { min: parseFloat(arg) || 5 };
+    return {};
+  }
+  // Freeform detection: an exact key/alias executes; a bare prefix executes
+  // only for single-word input. Everything else is a wish for the brain.
+  function isFreeform(q) {
+    return q.trim().split(/\s+/).length >= 2 && !exactCmd(q);
+  }
+  function renderHints(q) {
+    const m = matchCmd(q);
+    const head = q.trim().toLowerCase().split(/\s+/)[0] || '';
+    let rows = Object.entries(REGISTRY)
+      .filter(([, d]) => !d.hidden)
+      .filter(([k, d]) => !head || (m && m.k === k) || k.startsWith(head) || (d.alias || []).some(a => a.startsWith(head)))
+      .slice(0, 7)
+      .map(([k, d]) => `<div class="pal-row${m && m.k === k && !isFreeform(q) ? ' sel' : ''}" data-k="${k}"><b>${k}</b><span>${d.desc}</span></div>`)
+      .join('');
+    if (q.trim() && (isFreeform(q) || !rows)) {
+      const brainRow = brainReady()
+        ? `<div class="pal-row sel" data-brain="1"><b>✦</b><span>conjure “${esc(q.trim().slice(0, 60))}” with the brain</span></div>`
+        : `<div class="pal-row" data-k="brain"><b>brain</b><span>connect an API key to conjure “${esc(q.trim().slice(0, 40))}”</span></div>`;
+      rows = brainRow + rows;
+    }
+    palHints.innerHTML = rows || '<div class="pal-row"><span class="dim">type an intent…</span></div>';
+  }
+  function paletteExec() {
+    const v = palInput.value.trim();
+    if (!v) { paletteClose(); return; }
+    const ex = exactCmd(v);
+    if (ex) { openPanel(ex.k, argProps(ex.k, ex.arg)); paletteClose(); return; }
+    if (!isFreeform(v)) {
+      const m = matchCmd(v);
+      if (m) { openPanel(m.k, argProps(m.k, m.arg)); paletteClose(); return; }
+    }
+    if (brainReady()) { conjureIntent(v); paletteClose(); return; }
+    openPanel('brain');
+    paletteClose();
+  }
+  palInput.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    lastMoveT = simT;
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); paletteClose(); return; }
+    if (e.key === 'Enter') paletteExec();
+    else if (e.key === 'Escape') paletteClose();
+  });
+  palInput.addEventListener('input', () => renderHints(palInput.value));
+  palHints.addEventListener('click', (e) => {
+    const row = e.target.closest('.pal-row');
+    if (!row) return;
+    if (row.dataset.brain) { conjureIntent(palInput.value.trim()); paletteClose(); return; }
+    if (!row.dataset.k) return;
+    const m = matchCmd(palInput.value);
+    openPanel(row.dataset.k, m && m.k === row.dataset.k ? argProps(m.k, m.arg) : {});
+    paletteClose();
+  });
+  paletteEl.addEventListener('pointerdown', (e) => { if (e.target === paletteEl) paletteClose(); });
+  el('conjureBtn').addEventListener('click', paletteOpen);
+
+  /* ---------------- global shortcuts ---------------- */
+  window.addEventListener('keydown', (e) => {
+    if (started) lastMoveT = simT; // presence: a typing hand is a present hand
+    if ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      paletteEl.classList.contains('show') ? paletteClose() : paletteOpen();
+      return;
+    }
+    if (e.key === 'Escape') { paletteClose(); return; }
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    if (e.key === '/') { e.preventDefault(); paletteOpen(); return; }
+    if (e.key === 'd' || e.key === 'D') {
+      const ex = wins.find(w => w.type === 'vitals');
+      ex ? closePanel(ex) : openPanel('vitals');
+    }
+  });
+
+  requestAnimationFrame(frame);
+
+  // Developer hook — the honest internals
+  window.GlassEmbryo = {
+    world, save, reset, evalGenome, descriptor,
+    stepOnce: (dt) => stepAndRender(dt),
+    get simT() { return simT; },
+    get dreaming() { return dreaming; },
+    shell: { open: openPanel, close: closePanel, wins, paletteOpen, paletteClose, registry: REGISTRY },
+    brain: { conjure: conjureIntent, validateSpec, renderSpec, config: brainCfg },
+  };
+  </script>
+</body>
+</html>
