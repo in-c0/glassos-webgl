@@ -1,0 +1,95 @@
+# GlassOS — a mind learning to speak in light
+
+**[▶ Open the live demo](https://in-c0.github.io/glassos-webgl/)** · a WebGL experiment by [Ava Kim](https://ava.kim)
+
+> *Can an AI develop its own visual language to express its intent — without any rendering API, without predefined shapes, starting from nothing but pixels? The way a child learns to draw before it can speak?*
+
+That question is the whole project. **GlassOS** is a small digital *embryo* whose signs are **alive**: each one is a genome, your attention is its food, and the language you see on screen is the result of real selection — not a script pretending to learn.
+
+## How it actually works
+
+There are no sprites, no shape library, no hand-drawn glyphs.
+
+- **Every sign is a genome.** A small CPPN-style function network — composed `sin` / `gauss` / `tanh` / `triangle` nodes over local space and time. The network's zero-contour, rendered as refracted light with chromatic dispersion, *is* the sign. The expressive space is the network's function space: open-ended, evolvable, unowned.
+- **Attention is the fitness function.** Cursor dwell near a sign feeds *that sign* (per-artifact credit assignment). Fed signs hold energy; energy-weighted parents breed the next generation, with mutation and crossover. Ignored signs starve, fade, and die. Touching a sign directly is a feast.
+- **Left alone, it dreams — by novelty search.** After ~12 seconds without attention, selection changes regime: instead of chasing reward, the system breeds candidates from its archive and keeps whichever is most *unfamiliar* (distance in phenotype space against everything it has ever kept). Awake, it learns what you like; asleep, it imagines. When you return, its dreams face selection.
+- **It remembers.** The living population, the hall-of-fame archive, and the generation count persist in `localStorage`. Close the tab, come back tomorrow — same creature, older, shaped by everyone who has visited that browser.
+
+The two meters in the HUD are honest: **Vitality** is smoothed attention income; **Restlessness** rises when income has been scarce, and drives up mutation.
+
+## Try it
+
+- **Move your cursor** near a sign to feed it. Watch it brighten and swell.
+- **Click a sign** to feast it.
+- A well-fed sign **buds**: its child drifts out of it, and if the field is full, the hungriest unfed sign gives way.
+- On your first visit a ghost hand shows this once — move your own cursor to take over.
+- The speaker in the HUD turns its voice on (off by default).
+- **Stop moving** for ~12 seconds and it starts to dream — new, stranger forms replace the dim ones, and the glass frosts over.
+- Press **`⌘K`** (or `Ctrl K`, or `/`) and **conjure surfaces of glass** — see below.
+- Press **`D`** for the Vitals surface: per-sign energy, lineage, activation genes, the archive, and the generation log — selection happening in real numbers.
+- `GlassEmbryo.reset()` in the console wipes its memory and starts a new genesis.
+
+## The shell — a desktop-only Jarvis
+
+The second half of the experiment: *what would Jarvis look like if all you had were a desktop, a keyboard, and a mouse?* No camera, no gesture tracking, no extra points of failure — the command palette **is** the dialogue.
+
+Every window begins as **intent** — `{type, props}` — and a registry realizes intent into a draggable, resizable surface of glass over the light-field. The compositor doesn't care who is speaking: today it's a palette; an LLM could drive the exact same registry tomorrow by emitting the same specs.
+
+Type `⌘K` and conjure:
+
+| intent | surface |
+|--------|---------|
+| `clock` | local time and date |
+| `weather tokyo` | live conditions via Open-Meteo (defaults to your timezone's city) |
+| `notes` | a persistent scrap of thought |
+| `timer 5` | a countdown that chimes |
+| `github owner/repo` | live repo pulse — stars, forks, latest commit |
+| `hn` | the live front page of Hacker News |
+| `vitals` | the creature's inner life, in real numbers |
+| `perf` | render pulse of this machine |
+| `help` | everything above |
+
+Windows drag by their title bars, resize from the corner, and the layout **persists** — close the tab, come back, your desk is as you left it. It greets you by the hour ("Good morning") — the first line of the project's earliest design notes. And when you go quiet and the creature starts to dream, your windows frost over until you return.
+
+The creature and the desk share one economy: the embryo lives *behind* your windows, fed by the same cursor you work with.
+
+## Conjure anything — the brain slot
+
+The registry above is the desk's *vocabulary*, not its ceiling. Type `brain` in the palette and connect an Anthropic API key (it stays in your browser's localStorage and is sent only to `api.anthropic.com`). From then on, **any freeform wish becomes a surface**:
+
+> `a moon phase widget` · `btc and eth prices, refreshing` · `a pomodoro for deep work with a haiku` · `usd→krw right now` · `a packing list for a rainy week in kyoto`
+
+A frontier model receives your wish plus desk context (time, open surfaces, the creature's state) and emits a program in **GlassDSL v0** — a small grammar of primitives (text, stacks, lists, stats, meters, sparklines, buttons, live clocks, and allowlisted keyless live-data fetches). A strict whitelist validator sanitizes every node — unknown types, non-`https` links, and non-allowlisted hosts are dropped, and all text renders inert — then a DOM renderer realizes it as glass. Conjured surfaces **persist with your layout and restore offline**, no re-generation needed.
+
+Nobody built the surface you asked for. Only the atoms existed.
+
+Every `(intent → spec)` pair is logged locally — the seed dataset for a future on-device model that learns *your* desk.
+
+### Cloud or fully local
+
+The brain is pluggable. In the `brain` surface you can pick:
+
+- **☁ Anthropic** — a frontier model via your API key (highest quality).
+- **⌂ Local (Ollama)** — a model running entirely on your machine, **zero cloud**. Point it at `http://localhost:11434`, run Ollama with `OLLAMA_ORIGINS=*`, and conjure offline. A "run on CPU" toggle handles small GPUs. (Local only reaches `localhost` when the desk is served over http — self-hosted or `python -m http.server` — since a public https page can't call localhost.)
+
+Measured: `qwen3:8b` emits valid GlassDSL on **19/20** conjure intents (~4–8s each). The local tier makes the desk genuinely cloud-independent — the "it just rents its mind" objection, answered.
+
+## Run locally
+
+A single self-contained HTML file — no build step, no dependencies.
+
+```bash
+# any static server works; for example:
+python -m http.server 8000
+# then open http://localhost:8000/
+```
+
+Needs a browser with **WebGL2** (recent Chrome, Edge, Firefox, or Safari).
+
+## History
+
+Earlier phases (1.0–3.0) explored the same question with a scripted cognition engine — templated glyphs, counted "beliefs," randomized "synthesis." Phase 4.0 replaced that theater with the real thing: genomes, selection, novelty search, persistence. Phase 5.0 added the shell — glass windows, live data, and the conjure palette — turning the experiment into a desktop. Phase 6.0 opened the brain slot: freeform wishes realized as generated GlassDSL surfaces by a frontier model, validated and rendered locally. The old prototypes live in git history.
+
+---
+
+GlassOS is part of a larger vision — an ambient, local-first operating system for glass and reflective surfaces — but this repository is its most personal fragment: the attempt to let a system *feel its way into its own way of speaking.*
